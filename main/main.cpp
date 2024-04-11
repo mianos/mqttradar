@@ -7,6 +7,7 @@
 #include "esp_log.h"
 #include "mqtt_client.h"
 #include "esp_sntp.h"
+#include "esp_heap_caps.h"
 
 #include "MqttClient.h"
 #include "WifiManager.h"
@@ -42,8 +43,10 @@ static void localEventHandler(void* arg, esp_event_base_t event_base, int32_t ev
     if (event_id == IP_EVENT_STA_GOT_IP) {
         ESP_LOGI(TAG, "got ip");
 		initialize_sntp();
+
 		auto client = static_cast<MqttClient *>(arg);
 		client->start();
+		client->subscribe("cmnd/radar3/config");
 		client->publish("tele/radar3/init", "Hello MQTT");
 	    xSemaphoreGive(wifiSemaphore);
 	}
@@ -53,14 +56,16 @@ extern "C" void app_main() {
 	wifiSemaphore = xSemaphoreCreateBinary();
 //    wifiManager.clearWiFiCredentials(); // TODO: put this as an argument to the wifiManager constructor
 	// or put a pin to hold down to init it.
-    MqttClient client("mqtt://mqtt2.mianos.com", "radar3", "rob", "secret");
+	MqttContext mctx;
+    MqttClient client(&mctx, "mqtt://mqtt2.mianos.com", "radar3", "rob", "secret");
 	WiFiManager wifiManager(localEventHandler, &client);
 
 //    client.subscribe("your/subscribe/topic");
     if (xSemaphoreTake(wifiSemaphore, portMAX_DELAY)) {
         ESP_LOGI(TAG, "Main task continues after WiFi connection.");
 		while (true) {
-			ESP_LOGI(TAG, "tick");
+			size_t freeMem = esp_get_free_heap_size();
+			ESP_LOGI(TAG, "Free memory: %u bytes", freeMem);
 			vTaskDelay(pdMS_TO_TICKS(1000)); 
 		}
     }
@@ -70,7 +75,6 @@ extern "C" void app_main() {
 
 #if 0
 //declare MQTT configstructure, will be initialised in mqtt_setup() function
-static esp_mqtt_client_config_t mqtt_cfg;
 
 // this will be called if MQTT is connected, here we have to subscribe to topics we need. Change it acccording to your needs
 void onMqttConnect(esp_mqtt_client_handle_t client) {

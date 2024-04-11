@@ -13,7 +13,8 @@
 #include "WifiManager.h"
 
 #include "Events.h"
-#include "RadarSensor.h"
+#include "ld2450.h"
+#include "SettingsManager.h"
 
 static const char *TAG = "mqtt_main";
 
@@ -59,6 +60,9 @@ extern "C" void app_main() {
 	wifiSemaphore = xSemaphoreCreateBinary();
 //    wifiManager.clearWiFiCredentials(); // TODO: put this as an argument to the wifiManager constructor
 	// or put a pin to hold down to init it.
+	SettingsManager settings;
+	LocalEP ep(settings);
+	LD2450 rsense(&ep, settings);
 	MqttContext mctx;
     MqttClient client(&mctx, "mqtt://mqtt2.mianos.com", "radar3", "rob", "secret");
 	WiFiManager wifiManager(localEventHandler, &client);

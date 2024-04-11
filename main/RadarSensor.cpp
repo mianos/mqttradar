@@ -2,7 +2,7 @@
 #include "esp_timer.h"
 #include "RadarSensor.h"
 
-RadarSensor::RadarSensor(EventProc* ep, std::shared_ptr<SettingsManager> settings) : settings(settings), ep(ep) {}
+RadarSensor::RadarSensor(EventProc* ep, SettingsManager& settings) : settings(settings), ep(ep) {}
 
 
 void RadarSensor::process(float minPower) {
@@ -49,7 +49,7 @@ void RadarSensor::process(float minPower) {
 
         case STATE_DETECTED:
             if (noTargetFound) {
-                if ((esp_timer_get_time() / 1000) - lastDetectionTime > settings->detectionTimeout) {
+                if ((esp_timer_get_time() / 1000) - lastDetectionTime > settings.detectionTimeout) {
                     ep->Cleared();
                     currentState = STATE_CLEARED_ONCE;
                 }

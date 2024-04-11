@@ -13,6 +13,7 @@
 #include "WifiManager.h"
 
 #include "Events.h"
+#include "RadarSensor.h"
 
 static const char *TAG = "mqtt_main";
 

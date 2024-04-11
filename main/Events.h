@@ -1,12 +1,13 @@
 #pragma once
 #include "esp_log.h"
 
+#include "JsonWrapper.h"
+
 inline double rr(double value) {
       return (int)(value * 100.0 + 0.5) / 100.0;
 }
 
 
-#include "JsonWrapper.h" // Include your JsonWrapper header file
 
 struct Value {
   virtual const char* etype() const { return "und"; }

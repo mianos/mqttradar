@@ -7,6 +7,7 @@ idf_component_register(SRCS main.cpp
                     WifiManager.cpp
                     nv.cpp
                     MqttClient.cpp
+					RadarSensor.cpp
                 INCLUDE_DIRS "."
                 REQUIRES mqtt 
                     esp_wifi

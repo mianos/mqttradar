@@ -1,6 +1,6 @@
 {
     "C_Cpp.intelliSenseEngine": "default",
-    "idf.adapterTargetName": "esp32",
+    "idf.adapterTargetName": "esp32c3",
     "idf.customExtraPaths": "/Users/rfo/.espressif/tools/xtensa-esp-elf-gdb/12.1_20231023/xtensa-esp-elf-gdb/bin:/Users/rfo/.espressif/tools/riscv32-esp-elf-gdb/12.1_20231023/riscv32-esp-elf-gdb/bin:/Users/rfo/.espressif/tools/xtensa-esp-elf/esp-13.2.0_20230928/xtensa-esp-elf/bin:/Users/rfo/.espressif/tools/riscv32-esp-elf/esp-13.2.0_20230928/riscv32-esp-elf/bin:/Users/rfo/.espressif/tools/esp32ulp-elf/2.35_20220830/esp32ulp-elf/bin:/Users/rfo/.espressif/tools/openocd-esp32/v0.12.0-esp32-20230921/openocd-esp32/bin:/Users/rfo/.espressif/tools/esp-rom-elfs/20230320",
     "idf.customExtraVars": {
         "OPENOCD_SCRIPTS": "/Users/rfo/.espressif/tools/openocd-esp32/v0.12.0-esp32-20230921/openocd-esp32/share/openocd/scripts",
@@ -8,10 +8,9 @@
     },
     "idf.espIdfPath": "/Users/rfo/esp/v5.2.1/esp-idf",
     "idf.openOcdConfigs": [
-        "interface/ftdi/esp32_devkitj_v1.cfg",
-        "target/esp32.cfg"
+        "board/esp32c3-ftdi.cfg"
     ],
-    "idf.port": "/dev/cu.wchusbserial54240239671",
+    "idf.port": "/dev/cu.usbmodem141101",
     "idf.pythonBinPath": "/Users/rfo/.espressif/python_env/idf5.2_py3.11_env/bin/python",
     "idf.toolsPath": "/Users/rfo/.espressif",
 "idf.enableUpdateSrcsToCMakeListsFile": false,

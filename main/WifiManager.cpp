@@ -9,8 +9,13 @@ NvsStorageManager WiFiManager::storageManager;
 EventGroupHandle_t WiFiManager::wifi_event_group;
 const char* WiFiManager::TAG = "WiFiManager";
 
-WiFiManager::WiFiManager(esp_event_handler_t eventHandler, void* eventHandlerArg) {
+WiFiManager::WiFiManager(esp_event_handler_t eventHandler, void* eventHandlerArg, bool clear) {
     ESP_ERROR_CHECK(nvs_flash_init());
+	if (clear) {
+		storageManager.clear("ssid");
+		storageManager.clear("password");
+		ESP_LOGI(TAG, "WiFi credentials cleared.");
+	}
     ESP_ERROR_CHECK(esp_netif_init());
     wifi_event_group = xEventGroupCreate();
     ESP_ERROR_CHECK(esp_event_loop_create_default());
@@ -37,12 +42,6 @@ WiFiManager::~WiFiManager() {
     esp_event_handler_unregister(SC_EVENT, ESP_EVENT_ANY_ID, &localEventHandler);
     esp_wifi_stop();
     esp_wifi_deinit();
-}
-
-void WiFiManager::clearWiFiCredentials() {
-    storageManager.clear("ssid");
-    storageManager.clear("password");
-    ESP_LOGI(TAG, "WiFi credentials cleared.");
 }
 
 void WiFiManager::localEventHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {

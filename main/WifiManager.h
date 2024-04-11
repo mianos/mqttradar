@@ -11,11 +11,8 @@
 
 class WiFiManager {
 public:
-    WiFiManager(esp_event_handler_t eventHandler=nullptr, void* eventHandlerArg = nullptr);
+    WiFiManager(esp_event_handler_t eventHandler=nullptr, void* eventHandlerArg = nullptr, bool clear=false);
     ~WiFiManager();
-
-    void clearWiFiCredentials(); // Method to clear WiFi credentials
-
 private:
     static void localEventHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
     static void smartConfigTask(void* param);

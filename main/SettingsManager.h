@@ -10,7 +10,7 @@ struct SettingsManager {
   int detectionTimeout = 60000;
   std::string tz = "AEST-10AEDT,M10.1.0,M4.1.0/3";
 
-  SettingsManager(); // Constructor declaration
+  SettingsManager()  {} // Constructor declaration
 
   enum class SettingChange {
     None = 0,

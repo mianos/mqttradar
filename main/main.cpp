@@ -71,8 +71,8 @@ extern "C" void app_main() {
     if (xSemaphoreTake(wifiSemaphore, portMAX_DELAY)) {
         ESP_LOGI(TAG, "Main task continues after WiFi connection.");
 		while (true) {
-			size_t freeMem = esp_get_free_heap_size();
-			ESP_LOGI(TAG, "Free memory: %u bytes", freeMem);
+//			size_t freeMem = esp_get_free_heap_size();
+//			ESP_LOGI(TAG, "Free memory: %u bytes", freeMem);
 			vTaskDelay(pdMS_TO_TICKS(1000)); 
 		}
     }

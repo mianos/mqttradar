@@ -1,9 +1,14 @@
 #pragma once
 #include <vector>
+#include "driver/uart.h"
 #include "RadarSensor.h"
 
+
 class LD2450 : public RadarSensor {
-    HardwareSerial SerialR;
+	uart_port_t uartPort = UART_NUM_0;
+	int txPin = 6;
+	int rxPin = 7;
+
     enum DecoderState {
         SEARCH_FOR_START,
         PROCESSING_DATA,
@@ -50,77 +55,94 @@ class LD2450 : public RadarSensor {
     }
 
 public:
-    LD2450(EventProc* ep, std::shared_ptr<SettingsManager> settings) : RadarSensor(ep, settings), SerialR(1) {
-      SerialR.begin(256000, SERIAL_8N1, LD_RX, LD_TX);
+    LD2450(EventProc* ep, SettingsManager& settings) : RadarSensor(ep, settings) {
+		uart_config_t uartConfig;
+		uartConfig.baud_rate = 256000;
+		uartConfig.data_bits = UART_DATA_8_BITS;
+		uartConfig.parity = UART_PARITY_DISABLE;
+		uartConfig.stop_bits = UART_STOP_BITS_1;
+		uartConfig.flow_ctrl = UART_HW_FLOWCTRL_DISABLE;
+		uartConfig.source_clk = UART_SCLK_APB;
+		uart_param_config(uartPort, &uartConfig);
+		uart_set_pin(uartPort, txPin, rxPin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+		uart_driver_install(uartPort, 1024 * 2, 0, 0, NULL, 0);
     }
 
     std::vector<std::unique_ptr<Value>>  get_decoded_radar_data() {
+	  uint8_t data[1024]; // Buffer for reading data
+	  int length = 0; // Variable to store the length of received data
+
       std::vector<std::unique_ptr<Value>> valuesList;
-      while (SerialR.available()) {
-        uint8_t byteValue = SerialR.read();
-        // Serial.printf("%2x ", byteValue);
-        switch (currentState) {
-        case SEARCH_FOR_START:
-            if ((startSeqCount == 0 && byteValue == 0xAA) ||
-                (startSeqCount == 1 && byteValue == 0xFF) ||
-                (startSeqCount == 2 && byteValue == 0x03) ||
-                (startSeqCount == 3 && byteValue == 0x00)) {
-                startSeqCount++;
-            } else {
-                startSeqCount = 0;  // Reset if any byte doesn't match
-            }
+     while (true) {
+        if ((length = uart_read_bytes(uartPort, data, sizeof (data), 2 / portTICK_PERIOD_MS)) == 0) {
+			break;
+		}
+		for (int i = 0; i < length; ++i) {
+			uint8_t byteValue = data[i];
+			printf("%2x ", byteValue);
+			switch (currentState) {
+			case SEARCH_FOR_START:
+				if ((startSeqCount == 0 && byteValue == 0xAA) ||
+					(startSeqCount == 1 && byteValue == 0xFF) ||
+					(startSeqCount == 2 && byteValue == 0x03) ||
+					(startSeqCount == 3 && byteValue == 0x00)) {
+					startSeqCount++;
+				} else {
+					startSeqCount = 0;  // Reset if any byte doesn't match
+				}
 
-            if (startSeqCount == 4) {  // All 4 start bytes matched
-                currentState = PROCESSING_DATA;
-                dataByteCount = 0;
-                startSeqCount = 0;  // Reset for the next packet
-            }
-            break;
+				if (startSeqCount == 4) {  // All 4 start bytes matched
+					currentState = PROCESSING_DATA;
+					dataByteCount = 0;
+					startSeqCount = 0;  // Reset for the next packet
+				}
+				break;
 
-        case PROCESSING_DATA:
-            targetData[dataByteCount] = byteValue;
-            dataByteCount++;
+			case PROCESSING_DATA:
+				targetData[dataByteCount] = byteValue;
+				dataByteCount++;
 
-            if (dataByteCount == TOTAL_TARGET_BYTES) {
-                currentState = VERIFY_END;
-            }
-            break;
+				if (dataByteCount == TOTAL_TARGET_BYTES) {
+					currentState = VERIFY_END;
+				}
+				break;
 
-        case VERIFY_END:
-            if ((endSeqCount == 0 && byteValue == 0x55) ||
-                (endSeqCount == 1 && byteValue == 0xCC)) {
-                endSeqCount++;
-            } else {
-                currentState = SEARCH_FOR_START;  // Something went wrong, start over
-                endSeqCount = 0;
-            }
+			case VERIFY_END:
+				if ((endSeqCount == 0 && byteValue == 0x55) ||
+					(endSeqCount == 1 && byteValue == 0xCC)) {
+					endSeqCount++;
+				} else {
+					currentState = SEARCH_FOR_START;  // Something went wrong, start over
+					endSeqCount = 0;
+				}
 
-            if (endSeqCount == TOTAL_END_BYTES) {
-                // Print decoded target data only if not all distances are zero
-                if (!isAllDistancesZero()) {
-                    for (int i = 0; i < 3; i++) { // for each target
-                        int16_t x = decodeCoordinate(targetData[i*8], targetData[i*8 + 1]);
-                        int16_t y = decodeCoordinate(targetData[i*8 + 2], targetData[i*8 + 3]);
-                        int16_t speed = decodeSpeed(targetData[i*8 + 4], targetData[i*8 + 5]);
-                        uint16_t resolution = (targetData[i*8 + 7] << 8) | targetData[i*8 + 6];
+				if (endSeqCount == TOTAL_END_BYTES) {
+					// Print decoded target data only if not all distances are zero
+					if (!isAllDistancesZero()) {
+						for (int i = 0; i < 3; i++) { // for each target
+							int16_t x = decodeCoordinate(targetData[i*8], targetData[i*8 + 1]);
+							int16_t y = decodeCoordinate(targetData[i*8 + 2], targetData[i*8 + 3]);
+							int16_t speed = decodeSpeed(targetData[i*8 + 4], targetData[i*8 + 5]);
+							// uint16_t resolution = (targetData[i*8 + 7] << 8) | targetData[i*8 + 6]; // TODO: add this
 
-                        //printf("Target %d - X: %d mm, Y: %d mm, Speed: %d cm/s, Resolution: %d mm\n", 
-                        //                                      i+1, x, y, speed, resolution);
-                        if (x) {
-                          valuesList.push_back(std::unique_ptr<Value>(
-                            new Range(static_cast<float>(x) / 1000.0, 
-                                      static_cast<float>(y) / 1000.0,
-                                      static_cast<float>(speed) * 0.036,
-                                      i)));
-                        }
-                    }
-                }
-                currentState = SEARCH_FOR_START;
-                endSeqCount = 0;
-                return valuesList;
-            }
-            break;
-        }
+							//printf("Target %d - X: %d mm, Y: %d mm, Speed: %d cm/s, Resolution: %d mm\n", 
+							//                                      i+1, x, y, speed, resolution);
+							if (x) {
+							  valuesList.push_back(std::unique_ptr<Value>(
+								new Range(static_cast<float>(x) / 1000.0, 
+										  static_cast<float>(y) / 1000.0,
+										  static_cast<float>(speed) * 0.036,
+										  i)));
+							}
+						}
+					}
+					currentState = SEARCH_FOR_START;
+					endSeqCount = 0;
+					return valuesList;
+				}
+				break;
+			}
+		 }
       }
       return valuesList;
     }

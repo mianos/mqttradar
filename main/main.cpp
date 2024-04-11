@@ -12,6 +12,8 @@
 #include "MqttClient.h"
 #include "WifiManager.h"
 
+#include "Events.h"
+
 static const char *TAG = "mqtt_main";
 
 static SemaphoreHandle_t wifiSemaphore;

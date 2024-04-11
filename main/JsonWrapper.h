@@ -38,6 +38,22 @@ public:
         return jsonObj_ == nullptr;
     }
 
+	void AddItem(const std::string& key, double value) {
+		if (!jsonObj_) jsonObj_.reset(cJSON_CreateObject());
+		cJSON_AddNumberToObject(jsonObj_.get(), key.c_str(), value);
+	}
+
+	void AddItem(const std::string& key, int value) {
+		if (!jsonObj_) jsonObj_.reset(cJSON_CreateObject());
+		cJSON_AddNumberToObject(jsonObj_.get(), key.c_str(), value);
+	}
+
+	void AddItem(const std::string& key, const std::string& value) {
+		if (!jsonObj_) jsonObj_.reset(cJSON_CreateObject());
+		cJSON_AddStringToObject(jsonObj_.get(), key.c_str(), value.c_str());
+	}
+
+
 private:
     std::unique_ptr<cJSON, decltype(&cJSON_Delete)> jsonObj_;
 };

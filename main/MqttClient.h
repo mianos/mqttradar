@@ -1,4 +1,11 @@
 #pragma once
+#include <vector>
+#include <deque>
+#include <string>
+#include <utility>
+
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 #include "mqtt_client.h"
 
 #include "MqttContext.h"
@@ -9,11 +16,19 @@ public:
     ~MqttClient();
 
     void start();
-    void publish(const char* topic, const char* data);
-    void subscribe(const char* topic);
+    void wait_for_connection();
+    void publish(std::string topic, std::string data);
+    void subscribe(std::string topic);
+    MqttContext* context;
 
 private:
+    SemaphoreHandle_t connected_sem;
     esp_mqtt_client_handle_t client;
-	MqttContext* context;
+    std::vector<std::string> subscriptions;
+    std::deque<std::pair<std::string, std::string>> messageQueue;
+
     static void mqtt_event_handler(void* handler_args, esp_event_base_t base, int32_t event_id, void* event_data);
+    void resubscribe();
+    void flushMessageQueue();
+
 };

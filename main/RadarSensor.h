@@ -5,6 +5,7 @@
 
 #include "Events.h"
 #include "SettingsManager.h"
+#include "MqttClient.h"
 
 class RadarSensor {
   SettingsManager& settings;
@@ -30,8 +31,9 @@ class LocalEP : public EventProc {
   SettingsManager& settings;
   uint32_t lastTrackingUpdateTime = 0;
   uint32_t lastPresenceUpdateTime = 0;
+  MqttClient& mqttClient;
 public:
-  LocalEP(SettingsManager& settings) : settings(settings) {
+  LocalEP(SettingsManager& settings, MqttClient &mqtt_client) : settings(settings), mqttClient(mqtt_client) {
   }
 
   virtual void Detected(Value *vv) {
@@ -47,7 +49,8 @@ public:
   virtual void PresenceUpdate(Value *vv) {
     uint32_t currentMillis = esp_timer_get_time() / 1000;
     if (settings.presence && (currentMillis - lastPresenceUpdateTime >= settings.presence)) {
-     ESP_LOGI("LEP", "update with flag etype");
+//     ESP_LOGI("LEP", "update with flag etype %s", vv->etype());
+		vv->print();
 //      mqtt->mqtt_update_presence(vv->etype() != "no", vv);
       lastPresenceUpdateTime = currentMillis;
     }
@@ -61,6 +64,7 @@ public:
     if (settings.tracking && (currentMillis - lastTrackingUpdateTime >= settings.tracking)) {
 //      mqtt->mqtt_track(vv);
      ESP_LOGI("LEP", "track");
+	 vv->print();
       lastTrackingUpdateTime = currentMillis;
     }
   }

@@ -1,3 +1,4 @@
+
 #include <cstring>
 #include <string>
 #include <regex>
@@ -12,7 +13,8 @@
 static const char* TAG = "MqttClient";
 
 MqttClient::MqttClient(MqttContext* context, const char* brokerUri, const char* clientId, const char* username, const char* password)
-    : context(context) {
+        : context(context) {
+    connected_sem = xSemaphoreCreateBinary();
     esp_mqtt_client_config_t mqtt_cfg = {};
 
     // Set broker URI
@@ -26,7 +28,7 @@ MqttClient::MqttClient(MqttContext* context, const char* brokerUri, const char* 
     // Initialize the MQTT client with the configuration
     client = esp_mqtt_client_init(&mqtt_cfg);
 //    esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler, client);
-	esp_mqtt_client_register_event(client, static_cast<esp_mqtt_event_id_t>(ESP_EVENT_ANY_ID), mqtt_event_handler, this);
+    esp_mqtt_client_register_event(client, static_cast<esp_mqtt_event_id_t>(ESP_EVENT_ANY_ID), mqtt_event_handler, this);
 
 }
 
@@ -39,12 +41,43 @@ void MqttClient::start() {
     esp_mqtt_client_start(client);
 }
 
-void MqttClient::publish(const char* topic, const char* data) {
-    esp_mqtt_client_publish(client, topic, data, 0, 1, 0);
+void MqttClient::publish(std::string topic, std::string data) {
+    if (xSemaphoreTake(connected_sem, 0) == pdTRUE) {
+        esp_mqtt_client_publish(client, topic.c_str(), data.c_str(), 0, 1, 0);
+        xSemaphoreGive(connected_sem);
+		ESP_LOGI(TAG, "published %s data %s", topic.c_str(), data.c_str());
+    } else {
+        messageQueue.emplace_back(std::make_pair(topic, data));
+		ESP_LOGI(TAG, "emplaced as not connected");
+	}
 }
 
-void MqttClient::subscribe(const char* topic) {
-    esp_mqtt_client_subscribe(client, topic, 0);
+
+void MqttClient::flushMessageQueue() {
+    while (!messageQueue.empty()) {
+        const auto& msg = messageQueue.front();
+        esp_mqtt_client_publish(client, msg.first.c_str(), msg.second.c_str(), 0, 1, 0);
+		ESP_LOGI(TAG, "FLUSH published %s data %s", msg.first.c_str(), msg.second.c_str());
+        messageQueue.pop_front();  // Remove the message from the queue after publishing
+    }
+}
+
+void MqttClient::subscribe(std::string topic) {
+    // Check if the topic is already in the vector to avoid duplicates
+    if (std::find(subscriptions.begin(), subscriptions.end(), topic) == subscriptions.end()) {
+        subscriptions.push_back(topic);  // Add to subscriptions if not already present
+    }
+    // Perform subscription only if already connected
+    if (xSemaphoreTake(connected_sem, 0) == pdTRUE) {  // Non-blocking take
+        esp_mqtt_client_subscribe(client, topic.c_str(), 0);
+        xSemaphoreGive(connected_sem);  // Release the semaphore immediately after checking
+    }
+}
+
+void MqttClient::resubscribe() {
+    for (const auto& topic : subscriptions) {
+        esp_mqtt_client_subscribe(client, topic.c_str(), 0);
+    }
 }
 
 using HandlerFunc = std::function<void(MqttClient&, MqttContext&, const std::string&, cJSON*)>;
@@ -92,43 +125,53 @@ void MqttClient::mqtt_event_handler(void* handler_args, esp_event_base_t base, i
 
     // Check the type of MQTT event
     switch (event->event_id) {
-	case MQTT_EVENT_CONNECTED:
-		ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
-		break;
-	case MQTT_EVENT_DISCONNECTED:
-		ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
-		break;
-	case MQTT_EVENT_SUBSCRIBED:
-		ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
-		break;
-	case MQTT_EVENT_UNSUBSCRIBED:
-		ESP_LOGI(TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
-		break;
-	case MQTT_EVENT_PUBLISHED:
-		ESP_LOGI(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
-		break;
-	case MQTT_EVENT_DATA: {
-			ESP_LOGI(TAG, "MQTT_EVENT_DATA");
-			std::string topicStr(event->topic, event->topic_len);
-			std::string payloadStr(event->data, event->data_len);
+    case MQTT_EVENT_CONNECTED:
+        ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
+        xSemaphoreGive(clientInstance->connected_sem);
+        clientInstance->resubscribe();
+		clientInstance->flushMessageQueue();
+        break;
+    case MQTT_EVENT_DISCONNECTED:
+        ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
+        break;
+    case MQTT_EVENT_SUBSCRIBED:
+        ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
+        break;
+    case MQTT_EVENT_UNSUBSCRIBED:
+        ESP_LOGI(TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
+        break;
+    case MQTT_EVENT_PUBLISHED:
+        ESP_LOGI(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
+        break;
+    case MQTT_EVENT_DATA: {
+            ESP_LOGI(TAG, "MQTT_EVENT_DATA");
+            std::string topicStr(event->topic, event->topic_len);
+            std::string payloadStr(event->data, event->data_len);
 
-			auto jsonPayload = JsonWrapper::Parse(payloadStr);
-			if (!jsonPayload.Empty()) {
-				dispatchEvent(*clientInstance, *context, topicStr, jsonPayload.Release());
-			} else {
-				const char* error_ptr = cJSON_GetErrorPtr();
-				if (error_ptr != nullptr) {
-					ESP_LOGE(TAG, "Error parsing JSON: %s", error_ptr);
-				}
-			}
-		}
-		break;
-	case MQTT_EVENT_ERROR:
-		ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
-		break;
-	default:
-		ESP_LOGI(TAG, "Other MQTT Event ID: %d", event->event_id);
-		break;
+            auto jsonPayload = JsonWrapper::Parse(payloadStr);
+            if (!jsonPayload.Empty()) {
+                dispatchEvent(*clientInstance, *context, topicStr, jsonPayload.Release());
+            } else {
+                const char* error_ptr = cJSON_GetErrorPtr();
+                if (error_ptr != nullptr) {
+                    ESP_LOGE(TAG, "Error parsing JSON: %s", error_ptr);
+                }
+            }
+        }
+        break;
+    case MQTT_EVENT_ERROR:
+        ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
+        break;
+    default:
+        ESP_LOGI(TAG, "Other MQTT Event ID: %d", event->event_id);
+        break;
     }
 }
 
+void MqttClient::wait_for_connection() {
+    if (xSemaphoreTake(connected_sem, portMAX_DELAY)) {
+        ESP_LOGI(TAG, "Connected, semaphore released");
+    } else {
+        ESP_LOGE(TAG, "Something went wrong with semaphore");
+    }
+}

@@ -7,6 +7,8 @@
 #include "esp_log.h"
 #include "mqtt_client.h"
 #include "esp_sntp.h"
+#include "esp_netif.h"
+
 #include "esp_heap_caps.h"
 
 #include "MqttClient.h"
@@ -27,9 +29,9 @@ void initialize_sntp() {
     esp_sntp_setservername(0, "ntp.mianos.com");	// TODO: config
     esp_sntp_init();
     ESP_LOGI(TAG, "SNTP service initialized");
-    int max_retry = 20;
+    int max_retry = 50;
     while (sntp_get_sync_status() == SNTP_SYNC_STATUS_RESET && max_retry--) {
-        vTaskDelay(500 / portTICK_PERIOD_MS); 
+        vTaskDelay(100 / portTICK_PERIOD_MS); 
     }
     if (max_retry <= 0) {
         ESP_LOGE(TAG, "Failed to synchronize NTP time");
@@ -43,37 +45,82 @@ void initialize_sntp() {
              timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
 }
 
+
+
+void PublishMqttInit(MqttClient& client, SettingsManager& settings) {
+    JsonWrapper doc;
+
+    doc.AddItem("version", 4);
+    doc.AddItem("name", settings.sensorName);
+    
+    // Get the current time
+    time_t now = time(NULL);
+    struct tm timeinfo;
+
+    // Convert time to GMT and format it
+    gmtime_r(&now, &timeinfo);
+    char utc_time_string[64];
+    strftime(utc_time_string, sizeof(utc_time_string), "%FT%TZ", &timeinfo);
+    doc.AddItem("utctime", std::string(utc_time_string));  // Add UTC time to JSON
+
+    // Convert time to local time and format it
+    localtime_r(&now, &timeinfo);
+    char local_time_string[64];
+    strftime(local_time_string, sizeof(local_time_string), "%FT%T%z", &timeinfo);  // %z includes the timezone offset
+    doc.AddItem("time", std::string(local_time_string));  // Add local time to JSON
+
+    esp_netif_t* netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
+    if (!netif) {
+        ESP_LOGE("NET_INFO", "Network interface for STA not found");
+        return;
+    }
+    // Get hostname
+    const char* hostname;
+    esp_netif_get_hostname(netif, &hostname);
+	doc.AddItem("hostname", std::string(hostname));
+
+    // Get IP Address
+    esp_netif_ip_info_t ip_info;
+    if (esp_netif_get_ip_info(netif, &ip_info) == ESP_OK) {
+        char ip_str[16]; // Buffer to hold the IP address string
+        esp_ip4addr_ntoa(&ip_info.ip, ip_str, sizeof(ip_str));
+		doc.AddItem("ip", std::string(ip_str));
+    } else {
+        ESP_LOGE("NET_INFO", "Failed to get IP information");
+    }
+
+    std::string status_topic = std::string("tele/") + settings.sensorName + "/init";
+    std::string output = doc.ToString();
+    client.publish(status_topic, output);
+}
+
+
 static void localEventHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
     if (event_id == IP_EVENT_STA_GOT_IP) {
-        ESP_LOGI(TAG, "got ip");
-		initialize_sntp();
-
-		auto client = static_cast<MqttClient *>(arg);
-		client->start();
-		client->subscribe("cmnd/radar3/config");
-		client->publish("tele/radar3/init", "Hello MQTT");
 	    xSemaphoreGive(wifiSemaphore);
 	}
 }
 
 extern "C" void app_main() {
 	wifiSemaphore = xSemaphoreCreateBinary();
-//    wifiManager.clearWiFiCredentials(); // TODO: put this as an argument to the wifiManager constructor
-	// or put a pin to hold down to init it.
 	SettingsManager settings;
-	LocalEP ep(settings);
-	LD2450 rsense(&ep, settings);
 	MqttContext mctx;
     MqttClient client(&mctx, "mqtt://mqtt2.mianos.com", "radar3", "rob", "secret");
-	WiFiManager wifiManager(localEventHandler, &client);
+	// TODO:  add 'clear=true' to clear credentials. Use a button on start.
+	WiFiManager wifiManager(localEventHandler, nullptr);
+	LocalEP ep(settings, client);
+	LD2450 rsense(&ep, settings);
 
-//    client.subscribe("your/subscribe/topic");
-    if (xSemaphoreTake(wifiSemaphore, portMAX_DELAY)) {
+    if (xSemaphoreTake(wifiSemaphore, portMAX_DELAY) ) {
+		initialize_sntp();
+		client.start();
+		PublishMqttInit(client, settings);
         ESP_LOGI(TAG, "Main task continues after WiFi connection.");
 		while (true) {
 //			size_t freeMem = esp_get_free_heap_size();
 //			ESP_LOGI(TAG, "Free memory: %u bytes", freeMem);
-			vTaskDelay(pdMS_TO_TICKS(1000)); 
+			rsense.process();
+			vTaskDelay(pdMS_TO_TICKS(10)); 
 		}
     }
 //	 vSemaphoreDelete(wifiSemaphore);
@@ -81,42 +128,6 @@ extern "C" void app_main() {
 
 
 #if 0
-//declare MQTT configstructure, will be initialised in mqtt_setup() function
-
-// this will be called if MQTT is connected, here we have to subscribe to topics we need. Change it acccording to your needs
-void onMqttConnect(esp_mqtt_client_handle_t client) {
-  // subscribe to topics required
-  char *topic=(char *)malloc(MAX_MQTT_TOPIC_LEN+4);
-  if(topic!=nullptr) {
-      for(int i=0;i<NUMBER_DATAPOINTS;i++) {
-          strcpy(topic,settings.mqtt_topicprefix);
-          strcat(topic,"/");
-          strcat(topic,settings.param_mqtttopic[i]);
-          strcat(topic,"/set");
-          esp_mqtt_client_subscribe(client, topic, 0);
-        }
-  free(topic);
- }
-}
-
-// this is event handler that we will register in mqtt_setup(). You will need at least two events: MQTT_EVENT_CONNECTED and MQTT_EVENT_DATA. more possible events see ESP-IDF example
-static esp_err_t mqtt_event_handler(esp_mqtt_event_handle_t event)
-{
-    esp_mqtt_client_handle_t mqttclient = event->client;
-    int msg_id;
-    switch (event->event_id) {
-        case MQTT_EVENT_CONNECTED:
-            onMqttConnect(mqttclient);
-            break;
-        case MQTT_EVENT_DATA:
-            // Write your own onMqttMessage function that react on topics received
-            onMqttMessage(event->topic, event->topic_len, (const unsigned char *) event->data, event->data_len, 0, 0, 0);
-            break;
-        default:
-            break;
-    }
-    return ESP_OK;
-}
 
 void mqtt_setup(){
  // init config structure

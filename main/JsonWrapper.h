@@ -24,7 +24,7 @@ public:
 
     // Serialize JsonWrapper back to string.
     std::string ToString() const {
-        std::unique_ptr<char, decltype(&cJSON_free)> rawJsonString(cJSON_Print(jsonObj_.get()), &cJSON_free);
+        std::unique_ptr<char, decltype(&cJSON_free)> rawJsonString(cJSON_PrintUnformatted(jsonObj_.get()), &cJSON_free);
         return rawJsonString ? std::string(rawJsonString.get()) : std::string();
     }
 

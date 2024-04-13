@@ -83,7 +83,7 @@ void WiFiManager::localEventHandler(void* arg, esp_event_base_t event_base, int3
         storageManager.store("password", std::string(reinterpret_cast<char*>(wifi_config.sta.password)));
 
         ESP_ERROR_CHECK(esp_wifi_disconnect());
-        ESP_ERROR_CHECK( esp_wifi_set_config(WIFI_IF_STA, &wifi_config) );
+        ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config) );
         esp_wifi_connect();
     } else if (event_base == SC_EVENT && event_id == SC_EVENT_SEND_ACK_DONE) {
         xEventGroupSetBits(wifi_event_group, ESPTOUCH_DONE_BIT);

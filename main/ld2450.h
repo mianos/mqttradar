@@ -5,9 +5,9 @@
 
 
 class LD2450 : public RadarSensor {
-	uart_port_t uartPort = UART_NUM_0;
-	int txPin = 6;
-	int rxPin = 7;
+	uart_port_t uartPort = UART_NUM_1;
+	int txPin = 21;	// esp32c3 xiao pins
+	int rxPin = 20;
 
     enum DecoderState {
         SEARCH_FOR_START,
@@ -73,13 +73,12 @@ public:
 	  int length = 0; // Variable to store the length of received data
 
       std::vector<std::unique_ptr<Value>> valuesList;
-     while (true) {
+      while (true) {
         if ((length = uart_read_bytes(uartPort, data, sizeof (data), 2 / portTICK_PERIOD_MS)) == 0) {
 			break;
 		}
 		for (int i = 0; i < length; ++i) {
 			uint8_t byteValue = data[i];
-			printf("%2x ", byteValue);
 			switch (currentState) {
 			case SEARCH_FOR_START:
 				if ((startSeqCount == 0 && byteValue == 0xAA) ||

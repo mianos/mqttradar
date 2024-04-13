@@ -52,22 +52,8 @@ void PublishMqttInit(MqttClient& client, SettingsManager& settings) {
 
     doc.AddItem("version", 4);
     doc.AddItem("name", settings.sensorName);
-    
-    // Get the current time
-    time_t now = time(NULL);
-    struct tm timeinfo;
-
-    // Convert time to GMT and format it
-    gmtime_r(&now, &timeinfo);
-    char utc_time_string[64];
-    strftime(utc_time_string, sizeof(utc_time_string), "%FT%TZ", &timeinfo);
-    doc.AddItem("utctime", std::string(utc_time_string));  // Add UTC time to JSON
-
-    // Convert time to local time and format it
-    localtime_r(&now, &timeinfo);
-    char local_time_string[64];
-    strftime(local_time_string, sizeof(local_time_string), "%FT%T%z", &timeinfo);  // %z includes the timezone offset
-    doc.AddItem("time", std::string(local_time_string));  // Add local time to JSON
+	doc.AddTime();
+	doc.AddTime(false, "gmt");
 
     esp_netif_t* netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
     if (!netif) {

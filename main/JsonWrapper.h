@@ -53,6 +53,23 @@ public:
 		cJSON_AddStringToObject(jsonObj_.get(), key.c_str(), value.c_str());
 	}
 
+	void AddTime(bool local=true, const char *field="time") {
+		time_t now = time(NULL);
+		struct tm timeinfo;
+		char time_string[32];	// max should be 24 for local time.
+
+		if (local) {
+			localtime_r(&now, &timeinfo);
+			strftime(time_string, sizeof(time_string), "%FT%T%z", &timeinfo);
+		} else {
+			gmtime_r(&now, &timeinfo);
+			strftime(time_string, sizeof(time_string), "%FT%TZ", &timeinfo);
+		}
+		strftime(time_string, sizeof(time_string), "%FT%T", &timeinfo);
+		if (!jsonObj_) jsonObj_.reset(cJSON_CreateObject());
+		cJSON_AddStringToObject(jsonObj_.get(), "time", time_string);
+	}
+
 
 private:
     std::unique_ptr<cJSON, decltype(&cJSON_Delete)> jsonObj_;

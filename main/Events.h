@@ -10,15 +10,14 @@ inline double rr(double value) {
 
 
 struct Value {
-  virtual const char* etype() const { return "und"; }
-  virtual void print() const { ESP_LOGE("Events::Value", "un-overridden '%s'", etype()); }
+  virtual const std::string etype() const { return "und"; }
+  virtual void print() const { ESP_LOGE("Events::Value", "un-overridden '%s'", etype().c_str()); }
   virtual std::unique_ptr<Value> clone() const = 0;
   virtual bool isEqual(const Value& other) const = 0;
   virtual float get_main() const { return 0.0; }
   virtual float get_power() const { return 0.0; }
 
-  virtual JsonWrapper toJson() const {
-    JsonWrapper doc;
+  virtual JsonWrapper& toJson(JsonWrapper& doc) const {
     doc.AddItem("type", etype());
     return doc;
   }
@@ -30,7 +29,7 @@ struct Range : public Value {
   float speed;
   int reference;
 
-  const char* etype() const override { return "rng"; }
+  const std::string  etype() const override { return "rng"; }
 
   Range(float x, float y, float speed, int reference=0) : x(x), y(y), speed(speed), reference(reference) {}
   virtual float get_main() { return speed; }
@@ -48,8 +47,8 @@ struct Range : public Value {
     return x == o.x && y == o.y && speed == o.speed && reference == o.reference;
   }
 
-  JsonWrapper toJson() const override {
-    JsonWrapper doc = Value::toJson();
+  JsonWrapper& toJson(JsonWrapper& doc) const override {
+    Value::toJson(doc);
     doc.AddItem("x", rr(x));
     doc.AddItem("y", rr(y));
     doc.AddItem("speed", rr(speed));
@@ -59,7 +58,7 @@ struct Range : public Value {
 };
 
 struct NoTarget : public Value {
-  const char* etype() const override { return "no"; }
+  const std::string etype() const override { return "no"; }
 
   virtual void print() const override {
     ESP_LOGI("Events", "no target");

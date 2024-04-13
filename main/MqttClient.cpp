@@ -45,7 +45,7 @@ void MqttClient::publish(std::string topic, std::string data) {
     if (xSemaphoreTake(connected_sem, 0) == pdTRUE) {
         esp_mqtt_client_publish(client, topic.c_str(), data.c_str(), 0, 1, 0);
         xSemaphoreGive(connected_sem);
-		ESP_LOGI(TAG, "published %s data %s", topic.c_str(), data.c_str());
+		// ESP_LOGI(TAG, "published %s data %s", topic.c_str(), data.c_str());
     } else {
         messageQueue.emplace_back(std::make_pair(topic, data));
 		ESP_LOGI(TAG, "emplaced as not connected");
@@ -141,7 +141,7 @@ void MqttClient::mqtt_event_handler(void* handler_args, esp_event_base_t base, i
         ESP_LOGI(TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
         break;
     case MQTT_EVENT_PUBLISHED:
-        ESP_LOGI(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
+       //  ESP_LOGI(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
         break;
     case MQTT_EVENT_DATA: {
             ESP_LOGI(TAG, "MQTT_EVENT_DATA");

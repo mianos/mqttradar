@@ -74,6 +74,7 @@ void PublishMqttInit(MqttClient& client, SettingsManager& settings) {
     } else {
         ESP_LOGE("NET_INFO", "Failed to get IP information");
     }
+	doc.AddItem("settings", "cmnd/" + settings.sensorName + "/settings");
 
     std::string status_topic = std::string("tele/") + settings.sensorName + "/init";
     std::string output = doc.ToString();

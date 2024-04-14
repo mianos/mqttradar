@@ -3,25 +3,42 @@
 #include <deque>
 #include <string>
 #include <utility>
+#include <regex>
+#include <functional>
+
+#include <cJSON.h>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "mqtt_client.h"
 
-#include "MqttContext.h"
+#include "SettingsManager.h"
+
+using HandlerFunc = std::function<void(class MqttClient *, const std::string&, cJSON*)>;
+
+struct HandlerBinding {
+    std::string subscriptionTopic;  // Topic pattern used for MQTT subscription
+    std::regex matchPattern;        // Regex pattern used to match incoming topics
+    HandlerFunc handler;            // Function to handle the incoming data
+};
 
 class MqttClient {
 public:
-    MqttClient(MqttContext* context, const char* brokerUri, const char* clientId, const char* username, const char* password);
+    MqttClient(SettingsManager& settings,
+			const char* brokerUri,
+			const char* clientId,
+			const char* username,
+			const char* password);
     ~MqttClient();
 
     void start();
     void wait_for_connection();
     void publish(std::string topic, std::string data);
     void subscribe(std::string topic);
-    MqttContext* context;
+	void registerHandlers();
 
 private:
+	SettingsManager& settings;
     SemaphoreHandle_t connected_sem;
     esp_mqtt_client_handle_t client;
     std::vector<std::string> subscriptions;
@@ -31,4 +48,6 @@ private:
     void resubscribe();
     void flushMessageQueue();
 
+	std::vector<HandlerBinding> bindings;
+	static void dispatchEvent(MqttClient* client, const std::string& topic, cJSON* data);
 };

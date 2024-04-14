@@ -1,9 +1,6 @@
-
 #include <cstring>
 #include <string>
-#include <regex>
 #include <memory>
-#include <functional>
 
 #include "esp_log.h"
 
@@ -12,8 +9,9 @@
 
 static const char* TAG = "MqttClient";
 
-MqttClient::MqttClient(MqttContext* context, const char* brokerUri, const char* clientId, const char* username, const char* password)
-        : context(context) {
+MqttClient::MqttClient(SettingsManager& settings,
+			const char* brokerUri, const char* clientId, const char* username, const char* password)
+        : settings(settings) {
     connected_sem = xSemaphoreCreateBinary();
     esp_mqtt_client_config_t mqtt_cfg = {};
 
@@ -28,8 +26,11 @@ MqttClient::MqttClient(MqttContext* context, const char* brokerUri, const char* 
     // Initialize the MQTT client with the configuration
     client = esp_mqtt_client_init(&mqtt_cfg);
 //    esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler, client);
-    esp_mqtt_client_register_event(client, static_cast<esp_mqtt_event_id_t>(ESP_EVENT_ANY_ID), mqtt_event_handler, this);
-
+    esp_mqtt_client_register_event(client,
+			static_cast<esp_mqtt_event_id_t>(ESP_EVENT_ANY_ID),
+			mqtt_event_handler,
+			this);
+	registerHandlers();
 }
 
 MqttClient::~MqttClient() {
@@ -48,7 +49,6 @@ void MqttClient::publish(std::string topic, std::string data) {
 		// ESP_LOGI(TAG, "published %s data %s", topic.c_str(), data.c_str());
     } else {
         messageQueue.emplace_back(std::make_pair(topic, data));
-		ESP_LOGI(TAG, "emplaced as not connected");
 	}
 }
 
@@ -57,7 +57,6 @@ void MqttClient::flushMessageQueue() {
     while (!messageQueue.empty()) {
         const auto& msg = messageQueue.front();
         esp_mqtt_client_publish(client, msg.first.c_str(), msg.second.c_str(), 0, 1, 0);
-		ESP_LOGI(TAG, "FLUSH published %s data %s", msg.first.c_str(), msg.second.c_str());
         messageQueue.pop_front();  // Remove the message from the queue after publishing
     }
 }
@@ -80,15 +79,8 @@ void MqttClient::resubscribe() {
     }
 }
 
-using HandlerFunc = std::function<void(MqttClient&, MqttContext&, const std::string&, cJSON*)>;
 
-struct HandlerBinding {
-    std::regex pattern;
-    HandlerFunc handler;
-};
-
-
-void handleConfig(MqttClient& client, MqttContext& context, const std::string& topic, cJSON* data) {
+void handleSettings(MqttClient* client, const std::string& topic, cJSON* data) {
     JsonWrapper jsonData(data);
     auto jsonString = jsonData.ToString();
 
@@ -96,31 +88,39 @@ void handleConfig(MqttClient& client, MqttContext& context, const std::string& t
         ESP_LOGE(TAG, "Failed to serialize JSON data");
         return;
     }
-
-    ESP_LOGI(TAG, "Config handler - Topic: %s, Data: %s", topic.c_str(), jsonString.c_str());
+    ESP_LOGI(TAG, "Settings handler - Topic: %s, Data: %s", topic.c_str(), jsonString.c_str());
 }
 
-constexpr const char* device = "radar3";
 
-std::vector<HandlerBinding> handlers = {
-    {std::regex(std::string("cmnd/") + device + "/config"), handleConfig},
-    // Add more bindings as needed...
-};
+void MqttClient::registerHandlers() {
+    const std::string& device = settings.sensorName;
 
+    std::vector<HandlerBinding> handlers = {
+        {"cmnd/+/settings", std::regex("cmnd/" + device + "/settings"), handleSettings}
+        // You can add more handlers with separate subscription and matching patterns
+    };
 
-void dispatchEvent(MqttClient& client, MqttContext& context, const std::string& topic, cJSON* data) {
-    for (const auto& binding : handlers) {
-        if (std::regex_match(topic, binding.pattern)) {
-            binding.handler(client, context, topic, data);
-            return; // Assuming only one handler per topic pattern
+    for (const auto& handler : handlers) {
+		subscribe(handler.subscriptionTopic.c_str());
+        bindings.push_back({"", handler.matchPattern, handler.handler}); // Subscription topic isn't needed in the dispatcher
+    }
+}
+
+void MqttClient::dispatchEvent(MqttClient* client, const std::string& topic, cJSON* data) {
+    for (const auto& binding : client->bindings) {
+        if (std::regex_match(topic, binding.matchPattern)) {
+			if (binding.handler) {
+				binding.handler(client, topic, data);
+				return; // Assuming only one handler per topic pattern
+			}
         }
     }
     // Optionally, handle the case where no pattern matches
+	ESP_LOGW("MQTT_DISPATCH", "Unhandled topic: %s", topic.c_str());
 }
 
 void MqttClient::mqtt_event_handler(void* handler_args, esp_event_base_t base, int32_t event_id, void* event_data) {
     auto* clientInstance = static_cast<MqttClient*>(handler_args); // Cast to MqttClient*
-    auto* context = clientInstance->context; // Access the MqttContext from the clientInstance
     auto* event = static_cast<esp_mqtt_event_handle_t>(event_data); // Cast event_data to esp_mqtt_event_handle_t
 
     // Check the type of MQTT event
@@ -135,22 +135,21 @@ void MqttClient::mqtt_event_handler(void* handler_args, esp_event_base_t base, i
         ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
         break;
     case MQTT_EVENT_SUBSCRIBED:
-        ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
+        //ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
         break;
     case MQTT_EVENT_UNSUBSCRIBED:
-        ESP_LOGI(TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
+        //ESP_LOGI(TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
         break;
     case MQTT_EVENT_PUBLISHED:
        //  ESP_LOGI(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
         break;
     case MQTT_EVENT_DATA: {
-            ESP_LOGI(TAG, "MQTT_EVENT_DATA");
             std::string topicStr(event->topic, event->topic_len);
             std::string payloadStr(event->data, event->data_len);
 
             auto jsonPayload = JsonWrapper::Parse(payloadStr);
             if (!jsonPayload.Empty()) {
-                dispatchEvent(*clientInstance, *context, topicStr, jsonPayload.Release());
+                dispatchEvent(clientInstance, topicStr, jsonPayload.Release());
             } else {
                 const char* error_ptr = cJSON_GetErrorPtr();
                 if (error_ptr != nullptr) {

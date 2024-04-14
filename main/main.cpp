@@ -90,8 +90,7 @@ static void localEventHandler(void* arg, esp_event_base_t event_base, int32_t ev
 extern "C" void app_main() {
 	wifiSemaphore = xSemaphoreCreateBinary();
 	SettingsManager settings;
-	MqttContext mctx;
-    MqttClient client(&mctx, "mqtt://mqtt2.mianos.com", "radar3", "rob", "secret");
+    MqttClient client(settings, "mqtt://mqtt2.mianos.com", "radar3", "rob", "secret");
 	// TODO:  add 'clear=true' to clear credentials. Use a button on start.
 	WiFiManager wifiManager(localEventHandler, nullptr);
 	LocalEP ep(settings, client);

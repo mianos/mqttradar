@@ -67,7 +67,7 @@ public:
 		}
 		strftime(time_string, sizeof(time_string), "%FT%T", &timeinfo);
 		if (!jsonObj_) jsonObj_.reset(cJSON_CreateObject());
-		cJSON_AddStringToObject(jsonObj_.get(), "time", time_string);
+		cJSON_AddStringToObject(jsonObj_.get(), field, time_string);
 	}
 
 

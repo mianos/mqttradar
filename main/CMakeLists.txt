@@ -8,9 +8,12 @@ idf_component_register(SRCS main.cpp
                     nv.cpp
                     MqttClient.cpp
 					RadarSensor.cpp
+					PayloadExtractor.cpp
+					web.cpp
                 INCLUDE_DIRS "."
                 REQUIRES mqtt 
                     esp_wifi
                     nvs_flash
 					json
-					driver)
+					driver
+					esp_http_server)

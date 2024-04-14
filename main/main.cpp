@@ -17,6 +17,7 @@
 #include "Events.h"
 #include "ld2450.h"
 #include "SettingsManager.h"
+#include "web.h"
 
 static const char *TAG = "mqtt_main";
 
@@ -96,6 +97,8 @@ extern "C" void app_main() {
 	WiFiManager wifiManager(localEventHandler, nullptr);
 	LocalEP ep(settings, client);
 	LD2450 rsense(&ep, settings);
+	WebContext wc{settings};
+	WebServer webServer(wc); // Specify the web server port
 
     if (xSemaphoreTake(wifiSemaphore, portMAX_DELAY) ) {
 		initialize_sntp();

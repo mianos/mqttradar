@@ -77,10 +77,6 @@ public:
         return jsonObj_ == nullptr || cJSON_GetArraySize(jsonObj_.get()) == 0;
     }
 
-
-
-
-
     template<typename T>
     bool GetField(const std::string& key, T& value, bool mandatory = false) const {
         if (!jsonObj_) {
@@ -93,6 +89,12 @@ public:
         }
 
         return assignValue(item, value);
+    }
+
+    bool ContainsField(const std::string& key) const {
+        if (!jsonObj_) return false;
+        cJSON* item = cJSON_GetObjectItem(jsonObj_.get(), key.c_str());
+        return item != nullptr;
     }
 
 private:

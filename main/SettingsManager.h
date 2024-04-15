@@ -4,10 +4,18 @@
 #include <vector>
 #include <utility>
 
+#include "nv.h"
 #include "JsonWrapper.h"
 
 class SettingsManager {
+	NvsStorageManager nvs;
 public:
+	using ChangeList = std::vector<std::pair<std::string, std::string>>;
+
+    SettingsManager(NvsStorageManager& nvs) : nvs(nvs) {
+        loadSettings();
+    }
+
     std::string mqttServer = "mqtt2.mianos.com";
     int mqttPort = 1883;
     std::string sensorName = "radar3";
@@ -15,6 +23,18 @@ public:
     int presence = 1000;
     int detectionTimeout = 10000;
     std::string tz = "AEST-10AEDT,M10.1.0,M4.1.0/3";
+
+	void loadSettings() {
+        std::string value; // Temporary storage for the retrieved value
+
+        nvs.retrieve("mqttServer", mqttServer);
+        if (nvs.retrieve("mqttPort", value)) mqttPort = std::stoi(value);
+        nvs.retrieve("sensorName", sensorName);
+        if (nvs.retrieve("tracking", value)) tracking = std::stoi(value);
+        if (nvs.retrieve("presence", value)) presence = std::stoi(value);
+        if (nvs.retrieve("detectionTimeout", value)) detectionTimeout = std::stoi(value);
+        nvs.retrieve("tz", tz);
+    }
 
 
 	std::string ToJson() const {
@@ -29,14 +49,10 @@ public:
         return json.ToString();
     }
 
-	using ChangeList = std::vector<std::pair<std::string, std::string>>;
 
-    ChangeList updateFromJson(const std::string& jsonString) {
+   ChangeList updateFromJson(const std::string& jsonString) {
         ChangeList changes;
         JsonWrapper json = JsonWrapper::Parse(jsonString);
-        if (json.Empty()) {
-            return changes;
-        }
         updateFieldIfChanged(json, "mqttServer", mqttServer, changes);
         updateFieldIfChanged(json, "mqttPort", mqttPort, changes);
         updateFieldIfChanged(json, "sensorName", sensorName, changes);
@@ -44,6 +60,11 @@ public:
         updateFieldIfChanged(json, "presence", presence, changes);
         updateFieldIfChanged(json, "detectionTimeout", detectionTimeout, changes);
         updateFieldIfChanged(json, "tz", tz, changes);
+
+        // Save any changes to NVRAM
+        for (const auto& [key, value] : changes) {
+            nvs.store(key, value);
+        }
         return changes;
     }
 private:

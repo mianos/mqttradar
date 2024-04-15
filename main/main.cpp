@@ -91,10 +91,12 @@ static void localEventHandler(void* arg, esp_event_base_t event_base, int32_t ev
 
 extern "C" void app_main() {
 	wifiSemaphore = xSemaphoreCreateBinary();
-	SettingsManager settings;
+	NvsStorageManager nv;
+	SettingsManager settings(nv);
+	ESP_LOGI(TAG, "Settings %s", settings.ToJson().c_str());
     MqttClient client(settings, "mqtt://mqtt2.mianos.com", "radar3", "rob", "secret");
 	// TODO:  add 'clear=true' to clear credentials. Use a button on start.
-	WiFiManager wifiManager(localEventHandler, nullptr);
+	WiFiManager wifiManager(nv, localEventHandler, nullptr);
 	LocalEP ep(settings, client);
 	LD2450 rsense(&ep, settings);
 	WebContext wc{settings};

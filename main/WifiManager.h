@@ -11,13 +11,16 @@
 
 class WiFiManager {
 public:
-    WiFiManager(esp_event_handler_t eventHandler=nullptr, void* eventHandlerArg = nullptr, bool clear=false);
+    WiFiManager(NvsStorageManager& storageManager,
+				esp_event_handler_t eventHandler=nullptr,
+				void* eventHandlerArg = nullptr,
+				bool clear=false);
     ~WiFiManager();
 private:
     static void localEventHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
     static void smartConfigTask(void* param);
 
-    static NvsStorageManager storageManager; // Static instance of NvsStorageManager
+    NvsStorageManager& storageManager; 
     static EventGroupHandle_t wifi_event_group;
     static constexpr int CONNECTED_BIT = BIT0;
     static constexpr int ESPTOUCH_DONE_BIT = BIT1;

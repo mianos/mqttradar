@@ -9,23 +9,18 @@
 
 static const char* TAG = "MqttClient";
 
-MqttClient::MqttClient(SettingsManager& settings,
-			const char* brokerUri, const char* clientId, const char* username, const char* password)
+MqttClient::MqttClient(SettingsManager& settings) 
         : settings(settings) {
     connected_sem = xSemaphoreCreateBinary();
     esp_mqtt_client_config_t mqtt_cfg = {};
 
-    // Set broker URI
-    mqtt_cfg.broker.address.uri = brokerUri;
-
+    mqtt_cfg.broker.address.uri = settings.mqttBrokerUri.c_str();
     // Set client credentials
-    mqtt_cfg.credentials.username = username;
-    mqtt_cfg.credentials.client_id = clientId;
-    mqtt_cfg.credentials.authentication.password = password;
-
+    mqtt_cfg.credentials.username = settings.mqttUserName.c_str();
+    mqtt_cfg.credentials.client_id = settings.sensorName.c_str();
+    mqtt_cfg.credentials.authentication.password = settings.mqttUserPassword.c_str();
     // Initialize the MQTT client with the configuration
     client = esp_mqtt_client_init(&mqtt_cfg);
-//    esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler, client);
     esp_mqtt_client_register_event(client,
 			static_cast<esp_mqtt_event_id_t>(ESP_EVENT_ANY_ID),
 			mqtt_event_handler,

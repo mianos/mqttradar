@@ -24,11 +24,7 @@ struct HandlerBinding {
 
 class MqttClient {
 public:
-    MqttClient(SettingsManager& settings,
-			const char* brokerUri,
-			const char* clientId,
-			const char* username,
-			const char* password);
+    MqttClient(SettingsManager& settings);
     ~MqttClient();
 
     void start();

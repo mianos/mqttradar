@@ -16,36 +16,42 @@ public:
         loadSettings();
     }
 
-    std::string mqttServer = "mqtt2.mianos.com";
-    int mqttPort = 1883;
+    std::string mqttBrokerUri = "mqtt://mqtt2.mianos.com";
+	std::string mqttUserName = "";
+	std::string mqttUserPassword = "";
     std::string sensorName = "radar3";
     int tracking = 0;
     int presence = 1000;
     int detectionTimeout = 10000;
     std::string tz = "AEST-10AEDT,M10.1.0,M4.1.0/3";
+    std::string ntpServer = "time.google.com";
 
 	void loadSettings() {
         std::string value; // Temporary storage for the retrieved value
 
-        nvs.retrieve("mqttServer", mqttServer);
-        if (nvs.retrieve("mqttPort", value)) mqttPort = std::stoi(value);
+        nvs.retrieve("mqttBrokerUri", mqttBrokerUri);
+        nvs.retrieve("mqttUserName", mqttUserName);
+        nvs.retrieve("mqttUserPassword", mqttUserPassword);
         nvs.retrieve("sensorName", sensorName);
         if (nvs.retrieve("tracking", value)) tracking = std::stoi(value);
         if (nvs.retrieve("presence", value)) presence = std::stoi(value);
         if (nvs.retrieve("detectionTimeout", value)) detectionTimeout = std::stoi(value);
         nvs.retrieve("tz", tz);
+        nvs.retrieve("ntpServer", ntpServer);
     }
 
 
 	std::string ToJson() const {
         JsonWrapper json;
-        json.AddItem("mqttServer", mqttServer);
-        json.AddItem("mqttPort", mqttPort);
+        json.AddItem("mqttBrokerUri", mqttBrokerUri);
+        json.AddItem("mqttUserName", mqttUserName);
+        json.AddItem("mqttUserPassword", mqttUserPassword);
         json.AddItem("sensorName", sensorName);
         json.AddItem("tracking", tracking);
         json.AddItem("presence", presence);
         json.AddItem("detectionTimeout", detectionTimeout);
         json.AddItem("tz", tz);
+        json.AddItem("ntpServer", ntpServer);
         return json.ToString();
     }
 
@@ -53,13 +59,15 @@ public:
    ChangeList updateFromJson(const std::string& jsonString) {
         ChangeList changes;
         JsonWrapper json = JsonWrapper::Parse(jsonString);
-        updateFieldIfChanged(json, "mqttServer", mqttServer, changes);
-        updateFieldIfChanged(json, "mqttPort", mqttPort, changes);
+        updateFieldIfChanged(json, "mqttBrokerUri", mqttBrokerUri, changes);
+        updateFieldIfChanged(json, "mqttUserName", mqttUserName, changes);
+        updateFieldIfChanged(json, "mqttUserPassword", mqttUserPassword, changes);
         updateFieldIfChanged(json, "sensorName", sensorName, changes);
         updateFieldIfChanged(json, "tracking", tracking, changes);
         updateFieldIfChanged(json, "presence", presence, changes);
         updateFieldIfChanged(json, "detectionTimeout", detectionTimeout, changes);
         updateFieldIfChanged(json, "tz", tz, changes);
+        updateFieldIfChanged(json, "ntpServer", ntpServer, changes);
 
         // Save any changes to NVRAM
         for (const auto& [key, value] : changes) {

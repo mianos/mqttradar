@@ -23,11 +23,11 @@ static const char *TAG = "mqtt_main";
 
 static SemaphoreHandle_t wifiSemaphore;
 
-void initialize_sntp() {
-	setenv("TZ", "AEST-10AEDT,M10.1.0,M4.1.0/3", 1);	// TODO: config
+void initialize_sntp(SettingsManager& settings) {
+	setenv("TZ", settings.tz.c_str(), 1);
 	tzset();
     esp_sntp_setoperatingmode(SNTP_OPMODE_POLL);
-    esp_sntp_setservername(0, "ntp.mianos.com");	// TODO: config
+    esp_sntp_setservername(0, settings.ntpServer.c_str());
     esp_sntp_init();
     ESP_LOGI(TAG, "SNTP service initialized");
     int max_retry = 50;
@@ -94,7 +94,8 @@ extern "C" void app_main() {
 	NvsStorageManager nv;
 	SettingsManager settings(nv);
 	ESP_LOGI(TAG, "Settings %s", settings.ToJson().c_str());
-    MqttClient client(settings, "mqtt://mqtt2.mianos.com", "radar3", "rob", "secret");
+    //MqttClient client(settings, "mqtt://mqtt2.mianos.com", "radar3", "rob", "secret");
+    MqttClient client(settings);
 	// TODO:  add 'clear=true' to clear credentials. Use a button on start.
 	WiFiManager wifiManager(nv, localEventHandler, nullptr);
 	LocalEP ep(settings, client);
@@ -103,7 +104,7 @@ extern "C" void app_main() {
 	WebServer webServer(wc); // Specify the web server port
 
     if (xSemaphoreTake(wifiSemaphore, portMAX_DELAY) ) {
-		initialize_sntp();
+		initialize_sntp(settings);
 		client.start();
 		PublishMqttInit(client, settings);
         ESP_LOGI(TAG, "Main task continues after WiFi connection.");
@@ -117,20 +118,3 @@ extern "C" void app_main() {
 //	 vSemaphoreDelete(wifiSemaphore);
 }
 
-
-#if 0
-
-void mqtt_setup(){
- // init config structure
-    mqtt_cfg.event_handle = mqtt_event_handler;
-    mqtt_cfg.host=(const char *)settings.mqtt_server_ip;
-    char *uri_line=(char *)malloc(100);
-    sprintf(uri_line,"mqtt://%s:%u",settings.mqtt_server_ip,settings.mqtt_port);
-    mqtt_cfg.uri=uri_line;
-    mqtt_cfg.port=settings.mqtt_port;
-    mqtt_cfg.username=(const char *)settings.mqtt_user;
-    mqtt_cfg.password=(const char *)settings.mqtt_pwd;
- // setup MQTT
-    mqtt_client = esp_mqtt_client_init(&mqtt_cfg);
-}
-#endif

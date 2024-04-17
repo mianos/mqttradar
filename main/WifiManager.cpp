@@ -10,13 +10,7 @@ const char* WiFiManager::TAG = "WiFiManager";
 
 WiFiManager::WiFiManager(NvsStorageManager& storageManager,
 						 esp_event_handler_t eventHandler,
-						 void* eventHandlerArg,
-						 bool clear) : storageManager(storageManager) {
-	if (clear) {
-		storageManager.clear("ssid");
-		storageManager.clear("password");
-		ESP_LOGI(TAG, "WiFi credentials cleared.");
-	}
+						 void* eventHandlerArg) : storageManager(storageManager) {
     ESP_ERROR_CHECK(esp_netif_init());
     wifi_event_group = xEventGroupCreate();
     ESP_ERROR_CHECK(esp_event_loop_create_default());
@@ -108,4 +102,11 @@ void WiFiManager::smartConfigTask(void* param) {
             vTaskDelete(NULL);
         }
     }
+}
+
+void WiFiManager::clear() {
+	storageManager.clear("ssid");
+	storageManager.clear("password");
+	ESP_LOGI(TAG, "WiFi credentials cleared.");
+	esp_restart();
 }

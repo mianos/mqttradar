@@ -90,20 +90,34 @@ static void localEventHandler(void* arg, esp_event_base_t event_base, int32_t ev
 	}
 }
 
+void button_task(void *pvParameters) {
+	WiFiManager *wifiManager = static_cast<WiFiManager*>(pvParameters);  // Cast the void pointer back to WiFiManager pointer
+
+    Button button;
+    while (1) {
+        if (button.longPressed()) {
+            ESP_LOGI("BUTTON", "Long press detected, resetting WiFi settings.");
+            wifiManager->clear();
+        }
+        vTaskDelay(pdMS_TO_TICKS(100)); // Check every 100 ms
+    }
+}
+
 extern "C" void app_main() {
 	wifiSemaphore = xSemaphoreCreateBinary();
 	NvsStorageManager nv;
 	SettingsManager settings(nv);
-	ESP_LOGI(TAG, "Settings %s", settings.ToJson().c_str());
-    //MqttClient client(settings, "mqtt://mqtt2.mianos.com", "radar3", "rob", "secret");
+
+	ESP_LOGI(TAG, "Settings %s", settings.toJson().c_str());
     MqttClient client(settings);
-	// TODO:  add 'clear=true' to clear credentials. Use a button on start.
 	WiFiManager wifiManager(nv, localEventHandler, nullptr);
 	LocalEP ep(settings, client);
 	LD2450 rsense(&ep, settings);
-	WebContext wc{settings};
+	WebContext wc{&settings};
 	WebServer webServer(wc); // Specify the web server port
-	Button abut;
+
+	xTaskCreate(button_task, "button_task", 2048, &wifiManager, 10, NULL);
+
 
     if (xSemaphoreTake(wifiSemaphore, portMAX_DELAY) ) {
 		initialize_sntp(settings);
@@ -111,9 +125,6 @@ extern "C" void app_main() {
 		PublishMqttInit(client, settings);
         ESP_LOGI(TAG, "Main task continues after WiFi connection.");
 		while (true) {
-			if (abut.longPressed()) {
-				ESP_LOGI(TAG, "RESET WIFI PRESS");
-			}
 //			size_t freeMem = esp_get_free_heap_size();
 //			ESP_LOGI(TAG, "Free memory: %u bytes", freeMem);
 			rsense.process();

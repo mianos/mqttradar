@@ -4,8 +4,10 @@
 #include <vector>
 #include <utility>
 
+#include "esp_log.h"
 #include "nv.h"
 #include "JsonWrapper.h"
+
 
 class SettingsManager {
 	NvsStorageManager nvs;
@@ -26,8 +28,21 @@ public:
     std::string tz = "AEST-10AEDT,M10.1.0,M4.1.0/3";
     std::string ntpServer = "time.google.com";
 
+
+	std::string convertChangesToJson(const SettingsManager::ChangeList& changes) {
+		cJSON *root = cJSON_CreateObject();
+		for (const auto& [key, value] : changes) {
+			cJSON_AddStringToObject(root, key.c_str(), value.c_str());
+		}
+		char *rawJson = cJSON_Print(root);
+		std::string jsonResponse(rawJson);
+		cJSON_Delete(root);
+		free(rawJson); // cJSON_Print allocates memory that must be freed
+		return jsonResponse;
+	}
+
 	void loadSettings() {
-        std::string value; // Temporary storage for the retrieved value
+        std::string value;
 
         nvs.retrieve("mqttBrokerUri", mqttBrokerUri);
         nvs.retrieve("mqttUserName", mqttUserName);
@@ -41,7 +56,7 @@ public:
     }
 
 
-	std::string ToJson() const {
+	std::string toJson() const {
         JsonWrapper json;
         json.AddItem("mqttBrokerUri", mqttBrokerUri);
         json.AddItem("mqttUserName", mqttUserName);
@@ -77,23 +92,22 @@ public:
     }
 private:
 	template <typename T>
-	void updateFieldIfChanged(JsonWrapper& json,
-			const std::string& key,
-			T& field,
-			SettingsManager::ChangeList& changes) {
+	void updateFieldIfChanged(JsonWrapper& json, const std::string& key, T& field, SettingsManager::ChangeList& changes) {
 		if (json.ContainsField(key)) {  // Only proceed if the key exists in the JSON
 			T newValue;
-			if (json.GetField(key, newValue)) {  // Try to get the new value
+			if (json.GetField(key, newValue)) {  // Successfully retrieved new value
 				if (newValue != field) {
-					field = newValue;  // Update the field if the new value is different
+					field = newValue;
 
-					// Use type traits to handle conversion based on type
+					// Log the change for response
 					if constexpr (std::is_same_v<T, std::string>) {
-						changes.emplace_back(key, field);  // Directly use the string
+						changes.emplace_back(key, field);
 					} else {
-						changes.emplace_back(key, std::to_string(field));  // Convert numeric types to string
+						changes.emplace_back(key, std::to_string(field));
 					}
 				}
+			} else {
+				ESP_LOGE("SettingsUpdate", "Failed to retrieve new value for %s", key.c_str());
 			}
 		}
 	}

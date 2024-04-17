@@ -32,16 +32,11 @@ esp_err_t handle_settings_update(httpd_req_t *req) {
 
     // Get context which should contain a SettingsManager
     auto settings = static_cast<WebContext *>(req->user_ctx)->settings;
-    auto changes = settings.updateFromJson(content);
-	if (changes.empty()) {
-        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to parse JSON");
-        return ESP_FAIL;
-    }
-	for (const auto& [key, value] : changes) {
-        ESP_LOGI(TAG, "key %s was updated to %s", key.c_str(), value.c_str());
-	}
-    httpd_resp_send(req, nullptr, 0);  // Send HTTP 200 OK with no further content
-    return ESP_OK;
+    auto changes = settings->updateFromJson(content);
+	httpd_resp_set_type(req, "application/json");
+	std::string jsonResponse = settings->convertChangesToJson(changes);
+	httpd_resp_send(req, jsonResponse.c_str(), jsonResponse.length());
+	return ESP_OK;
 }
 
 httpd_uri_t post_settings_update = {
@@ -51,6 +46,32 @@ httpd_uri_t post_settings_update = {
 	.user_ctx = nullptr
 };
 
+esp_err_t handle_settings_get(httpd_req_t *req) {
+    if (!req) return ESP_FAIL; // Early exit on null request
+
+    // Get context which should contain a SettingsManager
+    auto settings = static_cast<WebContext *>(req->user_ctx)->settings;
+
+    // Retrieve current settings as JSON
+    std::string jsonResponse = settings->toJson(); // Assume toJson method that serializes settings to JSON string
+    if (jsonResponse.empty()) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to retrieve settings");
+        return ESP_FAIL;
+    } else {
+        httpd_resp_set_type(req, "application/json");
+        httpd_resp_send(req, jsonResponse.c_str(), jsonResponse.length());
+        return ESP_OK;
+    }
+}
+
+httpd_uri_t get_settings = {
+    .uri = "/settings",
+    .method = HTTP_GET,
+    .handler = handle_settings_get,
+    .user_ctx = nullptr
+};
+
+
 WebServer::WebServer(WebContext& ctx, uint16_t port) : port(port) {
 	ESP_LOGI(TAG, "Starting web server  on port %d", port);
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
@@ -59,5 +80,7 @@ WebServer::WebServer(WebContext& ctx, uint16_t port) : port(port) {
     if (httpd_start(&server, &config) == ESP_OK) {
 		post_settings_update.user_ctx = &ctx;
 		httpd_register_uri_handler(server, &post_settings_update);
+		get_settings.user_ctx = &ctx;
+		httpd_register_uri_handler(server, &get_settings);
     }
 }

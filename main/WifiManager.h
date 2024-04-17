@@ -13,9 +13,9 @@ class WiFiManager {
 public:
     WiFiManager(NvsStorageManager& storageManager,
 				esp_event_handler_t eventHandler=nullptr,
-				void* eventHandlerArg = nullptr,
-				bool clear=false);
+				void* eventHandlerArg = nullptr);
     ~WiFiManager();
+	void clear();
 private:
     static void localEventHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
     static void smartConfigTask(void* param);

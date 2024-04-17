@@ -32,7 +32,7 @@ struct Range : public Value {
   const std::string  etype() const override { return "rng"; }
 
   Range(float x, float y, float speed, int reference=0) : x(x), y(y), speed(speed), reference(reference) {}
-  virtual float get_main() { return speed; }
+  virtual float get_main() const { return speed; }
 
   virtual void print() const override {
     ESP_LOGI("Events", "Range: speed %1.2f x pos %1.2f Y pos %1.2f %2d", speed, x, y, reference);

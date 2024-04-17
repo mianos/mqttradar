@@ -5,7 +5,7 @@
 #include "SettingsManager.h"
 
 struct WebContext {
-	SettingsManager& settings;
+	SettingsManager* settings;
 };
 
 class WebServer {

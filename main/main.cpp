@@ -18,6 +18,7 @@
 #include "ld2450.h"
 #include "SettingsManager.h"
 #include "web.h"
+#include "Button.h"
 
 static const char *TAG = "mqtt_main";
 
@@ -102,6 +103,7 @@ extern "C" void app_main() {
 	LD2450 rsense(&ep, settings);
 	WebContext wc{settings};
 	WebServer webServer(wc); // Specify the web server port
+	Button abut;
 
     if (xSemaphoreTake(wifiSemaphore, portMAX_DELAY) ) {
 		initialize_sntp(settings);
@@ -109,6 +111,9 @@ extern "C" void app_main() {
 		PublishMqttInit(client, settings);
         ESP_LOGI(TAG, "Main task continues after WiFi connection.");
 		while (true) {
+			if (abut.longPressed()) {
+				ESP_LOGI(TAG, "RESET WIFI PRESS");
+			}
 //			size_t freeMem = esp_get_free_heap_size();
 //			ESP_LOGI(TAG, "Free memory: %u bytes", freeMem);
 			rsense.process();

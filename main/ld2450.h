@@ -122,10 +122,9 @@ public:
 							int16_t x = decodeCoordinate(targetData[i*8], targetData[i*8 + 1]);
 							int16_t y = decodeCoordinate(targetData[i*8 + 2], targetData[i*8 + 3]);
 							int16_t speed = decodeSpeed(targetData[i*8 + 4], targetData[i*8 + 5]);
-							// uint16_t resolution = (targetData[i*8 + 7] << 8) | targetData[i*8 + 6]; // TODO: add this
+							//uint16_t resolution = (targetData[i*8 + 7] << 8) | targetData[i*8 + 6]; // TODO: add this
 
-							//printf("Target %d - X: %d mm, Y: %d mm, Speed: %d cm/s, Resolution: %d mm\n", 
-							//                                      i+1, x, y, speed, resolution);
+							//ESP_LOGI("LD2450", "Target %d - X: %d mm, Y: %d mm, Speed: %d cm/s, Resolution: %d mm", i+1, x, y, speed, resolution);
 							if (x) {
 							  valuesList.push_back(std::unique_ptr<Value>(
 								new Range(static_cast<float>(x) / 1000.0, 

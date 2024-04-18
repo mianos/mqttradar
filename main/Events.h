@@ -1,13 +1,6 @@
 #pragma once
 #include "esp_log.h"
-
 #include "JsonWrapper.h"
-
-inline double rr(double value) {
-      return (int)(value * 100.0 + 0.5) / 100.0;
-}
-
-
 
 struct Value {
   virtual const std::string etype() const { return "und"; }
@@ -32,6 +25,7 @@ struct Range : public Value {
   const std::string  etype() const override { return "rng"; }
 
   Range(float x, float y, float speed, int reference=0) : x(x), y(y), speed(speed), reference(reference) {}
+
   virtual float get_main() const { return speed; }
 
   virtual void print() const override {
@@ -49,9 +43,9 @@ struct Range : public Value {
 
   JsonWrapper& toJson(JsonWrapper& doc) const override {
     Value::toJson(doc);
-    doc.AddItem("x", rr(x));
-    doc.AddItem("y", rr(y));
-    doc.AddItem("speed", rr(speed));
+    doc.AddItem("x", x);
+    doc.AddItem("y", y);
+    doc.AddItem("speed", speed);
     doc.AddItem("reference", reference);
     return doc;
   }

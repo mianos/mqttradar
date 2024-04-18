@@ -3,6 +3,9 @@
 #include <memory>
 #include <string.h>
 #include <string>
+#include <ctime>
+#include <type_traits>
+#include <cmath>
 
 class JsonWrapper {
 public:
@@ -28,23 +31,21 @@ public:
         return jsonObj_.release();
     }
 
-	void AddTime(bool local=true, const char *field="time") {
-		time_t now = time(NULL);
-		struct tm timeinfo;
-		char time_string[32];	// max should be 24 for local time.
+    void AddTime(bool local=true, const std::string &field="time") {
+        time_t now = time(nullptr);
+        struct tm timeinfo;
+        char time_string[32];
 
-		if (local) {
-			localtime_r(&now, &timeinfo);
-			strftime(time_string, sizeof(time_string), "%FT%T%z", &timeinfo);
-		} else {
-			gmtime_r(&now, &timeinfo);
-			strftime(time_string, sizeof(time_string), "%FT%TZ", &timeinfo);
-		}
-		strftime(time_string, sizeof(time_string), "%FT%T", &timeinfo);
-		if (!jsonObj_) jsonObj_.reset(cJSON_CreateObject());
-		cJSON_AddStringToObject(jsonObj_.get(), field, time_string);
-	}
-
+        if (local) {
+            localtime_r(&now, &timeinfo);
+            strftime(time_string, sizeof(time_string), "%FT%T%z", &timeinfo);
+        } else {
+            gmtime_r(&now, &timeinfo);
+            strftime(time_string, sizeof(time_string), "%FT%TZ", &timeinfo);
+        }
+        if (!jsonObj_) jsonObj_.reset(cJSON_CreateObject());
+        cJSON_AddStringToObject(jsonObj_.get(), field.c_str(), time_string);
+    }
 
     std::string ToString() const {
         if (jsonObj_ == nullptr) {
@@ -59,18 +60,12 @@ public:
         return result;
     }
 
-	void AddItem(const std::string& key, const std::string& value) {
-		if (!jsonObj_) {
-			jsonObj_.reset(cJSON_CreateObject());
-		}
-		cJSON_AddStringToObject(jsonObj_.get(), key.c_str(), value.c_str());
-	}
-
-    void AddItem(const std::string& key, int value) {
+    template<typename T>
+    void AddItem(const std::string& key, const T& value) {
         if (!jsonObj_) {
             jsonObj_.reset(cJSON_CreateObject());
         }
-        cJSON_AddNumberToObject(jsonObj_.get(), key.c_str(), value);
+        addItemInternal(key, value);
     }
 
     bool Empty() const noexcept {
@@ -98,6 +93,22 @@ public:
     }
 
 private:
+	static constexpr int floatDecimals = 4;
+
+    template<typename T>
+    void addItemInternal(const std::string& key, const T& value) {
+        if constexpr (std::is_integral_v<T>) {
+            cJSON_AddNumberToObject(jsonObj_.get(), key.c_str(), static_cast<double>(value));
+        } else if constexpr (std::is_floating_point_v<T>) {
+            double roundedValue = std::round(value * std::pow(10, floatDecimals)) / std::pow(10, floatDecimals);
+            cJSON_AddNumberToObject(jsonObj_.get(), key.c_str(), roundedValue);
+        } else if constexpr (std::is_same_v<T, std::string>) {
+            cJSON_AddStringToObject(jsonObj_.get(), key.c_str(), value.c_str());
+        } else {
+            static_assert(false, "Unsupported type for AddItem");
+        }
+    }
+
     template<typename T>
     bool assignValue(cJSON* item, T& value) const {
         if constexpr (std::is_same_v<T, std::string>) {
@@ -107,7 +118,7 @@ private:
             }
         } else if constexpr (std::is_integral_v<T> || std::is_floating_point_v<T>) {
             if (cJSON_IsNumber(item)) {
-                value = static_cast<T>(item->valuedouble);  // Use static_cast appropriately
+                value = static_cast<T>(item->valuedouble);
                 return true;
             }
         }
@@ -115,4 +126,3 @@ private:
     }
     std::unique_ptr<cJSON, decltype(&cJSON_Delete)> jsonObj_;
 };
-

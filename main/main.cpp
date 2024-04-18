@@ -31,7 +31,7 @@ void initialize_sntp(SettingsManager& settings) {
     esp_sntp_setservername(0, settings.ntpServer.c_str());
     esp_sntp_init();
     ESP_LOGI(TAG, "SNTP service initialized");
-    int max_retry = 50;
+    int max_retry = 200;
     while (sntp_get_sync_status() == SNTP_SYNC_STATUS_RESET && max_retry--) {
         vTaskDelay(100 / portTICK_PERIOD_MS); 
     }

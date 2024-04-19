@@ -6,15 +6,22 @@ Open the folder. Run the menuconfig. Select custom partition. Save.
 You may wish to select a board and port.
 Press build, upload and monitor.
 
+## Menu Config
+Run the idf menuconfig, go to Button Configuration, at the bottom.
+Set the GPIO button for your board.
+
+
 ## Wifi Set Up
 
 To reset the wifi, hold down the button (defined in Button.h). On the xiao espc3 this is GPIO_9
+on the lilygo display this is pin 35.
 
 When the 'Button' class is initialised in main.cpp you can pass another GPIO.
 
 Once the wifi is initialised you can use the ESP Touch V2 to config the wifi.
 https://www.espressif.com/en/technology/esp-touch
 
+Make sure AES and additional settings is not filled out
 
 ## Settings Set Up via REST
 The rest of the config is in SettingsManager.h

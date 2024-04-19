@@ -15,4 +15,5 @@ idf_component_register(SRCS main.cpp
                     nvs_flash
 					json
 					driver
-					esp_http_server)
+					esp_http_server
+                    button)

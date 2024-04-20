@@ -4,7 +4,7 @@
 
 class Button {
 public:
-    explicit Button(gpio_num_t pin = static_cast<gpio_num_t>(CONFIG_BUTTON_PIN)) : buttonPin(pin), state(OPEN) {
+    explicit Button(gpio_num_t pin = GPIO_NUM_9) : buttonPin(pin), state(OPEN) {
         gpio_reset_pin(buttonPin);  // Reset the pin to ensure it's not used by other configs
         gpio_set_direction(buttonPin, GPIO_MODE_INPUT);
         gpio_pullup_en(buttonPin);  // Enable pull-up since button goes to GND when pressed

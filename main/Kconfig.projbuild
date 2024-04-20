@@ -12,4 +12,10 @@ config LD2450_RX_PIN
     help
         Define the RX pin number for the LD2450 Radar Sensor.
 
+config BUTTON_PIN
+    int "Button GPIO Pin"
+    default 9  # Default to GPIO_NUM_9 for generic boards
+    help
+        Select the GPIO pin number used for the button.
+
 endmenu

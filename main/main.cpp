@@ -11,6 +11,8 @@
 
 #include "esp_heap_caps.h"
 
+#include "sdkconfig.h"
+
 #include "MqttClient.h"
 #include "WifiManager.h"
 
@@ -93,7 +95,7 @@ static void localEventHandler(void* arg, esp_event_base_t event_base, int32_t ev
 void button_task(void *pvParameters) {
 	WiFiManager *wifiManager = static_cast<WiFiManager*>(pvParameters);  // Cast the void pointer back to WiFiManager pointer
 
-    Button button;
+    Button button(static_cast<gpio_num_t>(CONFIG_BUTTON_PIN));
     while (1) {
         if (button.longPressed()) {
             ESP_LOGI("BUTTON", "Long press detected, resetting WiFi settings.");

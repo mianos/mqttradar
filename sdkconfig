@@ -375,6 +375,7 @@ CONFIG_PARTITION_TABLE_MD5=y
 #
 CONFIG_LD2450_TX_PIN=21
 CONFIG_LD2450_RX_PIN=20
+CONFIG_BUTTON_PIN=35
 # end of LD2450 Configuration
 
 #
@@ -1694,12 +1695,6 @@ CONFIG_WIFI_PROV_AUTOSTOP_TIMEOUT=30
 CONFIG_WIFI_PROV_STA_ALL_CHANNEL_SCAN=y
 # CONFIG_WIFI_PROV_STA_FAST_SCAN is not set
 # end of Wi-Fi Provisioning Manager
-
-#
-# Button Configuration
-#
-CONFIG_BUTTON_PIN=35
-# end of Button Configuration
 # end of Component config
 
 # CONFIG_IDF_EXPERIMENTAL_FEATURES is not set

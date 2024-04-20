@@ -1,9 +1,0 @@
-menu "Button Configuration"
-
-config BUTTON_PIN
-    int "Button GPIO Pin"
-    default 9  # Default to GPIO_NUM_9 for generic boards
-    help
-        Select the GPIO pin number used for the button.
-
-endmenu

@@ -7,8 +7,17 @@ You may wish to select a board and port.
 Press build, upload and monitor.
 
 ## Menu Config
+
+### Wifi reset button
 Run the idf menuconfig, go to Button Configuration, at the bottom.
-Set the GPIO button for your board.
+
+- Set the GPIO button for your board.
+
+### LD2450 Configuration
+Located in the "LD2450 Configuration" section:
+
+-    Define the TX pin number for the LD2450 Radar Sensor.
+-    Define the RX pin number for the LD2450 Radar Sensor.
 
 
 ## Wifi Set Up

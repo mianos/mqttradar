@@ -4,8 +4,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Include the ESP-IDF components
 idf_component_register(SRCS main.cpp 
-                    WifiManager.cpp
-                    nv.cpp
                     MqttClient.cpp
 					RadarSensor.cpp
 					web.cpp
@@ -16,4 +14,7 @@ idf_component_register(SRCS main.cpp
 					json
 					driver
 					esp_http_server
-                    button)
+                    button
+                    wifimanager
+                    nvsstoragemanager
+                    jsonwrapper)

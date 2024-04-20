@@ -1,6 +1,5 @@
 #pragma once
 
-#include "nv.h" // Include the NvsStorageManager header
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
@@ -8,6 +7,8 @@
 #include "esp_event.h"
 #include "esp_log.h"
 #include "esp_smartconfig.h"
+
+#include "NvsStorageManager.h"
 
 class WiFiManager {
 public:

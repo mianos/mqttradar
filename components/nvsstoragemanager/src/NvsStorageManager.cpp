@@ -1,7 +1,8 @@
-#include "nv.h"
 #include "nvs_flash.h"
 #include "esp_log.h"
 #include <cstring> // For memset and other string operations
+
+#include "NvsStorageManager.h"
 
 NvsStorageManager::NvsStorageManager(const std::string& storageNamespace) : ns(storageNamespace) {
     esp_err_t err = nvs_flash_init();

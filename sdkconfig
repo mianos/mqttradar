@@ -371,6 +371,13 @@ CONFIG_PARTITION_TABLE_MD5=y
 # end of Partition Table
 
 #
+# LD2450 Configuration
+#
+CONFIG_LD2450_TX_PIN=21
+CONFIG_LD2450_RX_PIN=20
+# end of LD2450 Configuration
+
+#
 # Compiler options
 #
 CONFIG_COMPILER_OPTIMIZATION_DEBUG=y

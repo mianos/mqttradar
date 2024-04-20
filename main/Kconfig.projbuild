@@ -1,0 +1,15 @@
+menu "LD2450 Configuration"
+
+config LD2450_TX_PIN
+    int "LD2450 TX Pin"
+    default 21
+    help
+        Define the TX pin number for the LD2450 Radar Sensor.
+
+config LD2450_RX_PIN
+    int "LD2450 RX Pin"
+    default 20
+    help
+        Define the RX pin number for the LD2450 Radar Sensor.
+
+endmenu

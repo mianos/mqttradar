@@ -1,13 +1,15 @@
 #pragma once
 #include <vector>
 #include "driver/uart.h"
+#include "sdkconfig.h"
+
 #include "RadarSensor.h"
 
 
 class LD2450 : public RadarSensor {
 	uart_port_t uartPort = UART_NUM_1;
-	int txPin = 21;	// esp32c3 xiao pins
-	int rxPin = 20;
+	int txPin = CONFIG_LD2450_TX_PIN;	// esp32c3 xiao pins
+	int rxPin = CONFIG_LD2450_RX_PIN;
 
     enum DecoderState {
         SEARCH_FOR_START,

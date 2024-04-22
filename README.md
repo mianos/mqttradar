@@ -47,6 +47,9 @@ The rest of the config is in SettingsManager.h
 
 Once the wifi is connected with esptouch, any of these can be reset with the built in web server.
 
+WARNING:  These names in the json are not the same as the above as there is a key size limit for nvs keys.
+
+
 	curl http://<IP_ADDRESS>/settings | jq
 	  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
 	                                 Dload  Upload   Total   Spent    Left  Speed

@@ -4,11 +4,20 @@
 
 class Button {
 public:
-    explicit Button(gpio_num_t pin = GPIO_NUM_9) : buttonPin(pin), state(OPEN) {
-        gpio_reset_pin(buttonPin);  // Reset the pin to ensure it's not used by other configs
-        gpio_set_direction(buttonPin, GPIO_MODE_INPUT);
-        gpio_pullup_en(buttonPin);  // Enable pull-up since button goes to GND when pressed
-        lastStateChangeTime = esp_timer_get_time();
+    explicit Button(gpio_num_t pin) : buttonPin(pin), state(OPEN) {
+		int ret;
+        if ((ret = gpio_reset_pin(buttonPin)) != ESP_OK) {
+            ESP_LOGE("Button", "Failed to reset pin %d: %s", buttonPin, esp_err_to_name(ret));
+            return;
+        }
+        if ((ret = gpio_set_direction(buttonPin, GPIO_MODE_INPUT)) != ESP_OK) {
+            ESP_LOGE("Button", "Failed to set pin direction for pin %d: %s", buttonPin, esp_err_to_name(ret));
+            return;
+        }
+        if ((ret = gpio_pullup_en(buttonPin)) != ESP_OK) {
+            ESP_LOGE("Button", "Failed to enable pull-up for pin %d: %s", buttonPin, esp_err_to_name(ret));
+            return;
+        }
     }
 
     bool longPressed() {

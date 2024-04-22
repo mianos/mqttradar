@@ -116,7 +116,7 @@ extern "C" void app_main() {
 	LocalEP ep(settings, client);
 	LD2450 rsense(&ep, settings);
 	WebContext wc{&settings};
-	WebServer webServer(wc); // Specify the web server port
+	WebServer webServer(wc);
 
 	xTaskCreate(button_task, "button_task", 2048, &wifiManager, 10, NULL);
 

@@ -71,6 +71,32 @@ httpd_uri_t get_settings = {
     .user_ctx = nullptr
 };
 
+// Handler function for rebooting the ESP
+esp_err_t handle_reboot(httpd_req_t *req) {
+    if (!req) return ESP_FAIL; // Early exit on null request
+
+    // Send confirmation message back to the client
+    httpd_resp_set_type(req, "application/json");
+    const char *response = "{\"message\": \"Rebooting now...\"}";
+    httpd_resp_send(req, response, strlen(response));
+
+    // Delay to ensure the response is sent before rebooting
+    vTaskDelay(pdMS_TO_TICKS(1000));
+
+    // Command to reboot the ESP
+    esp_restart();
+
+    return ESP_OK;
+}
+
+// Endpoint structure for the reboot function
+httpd_uri_t post_reboot = {
+    .uri = "/reboot",
+    .method = HTTP_POST,
+    .handler = handle_reboot,
+    .user_ctx = nullptr
+};
+
 
 WebServer::WebServer(WebContext& ctx, uint16_t port) : port(port) {
 	ESP_LOGI(TAG, "Starting web server  on port %d", port);
@@ -82,5 +108,7 @@ WebServer::WebServer(WebContext& ctx, uint16_t port) : port(port) {
 		httpd_register_uri_handler(server, &post_settings_update);
 		get_settings.user_ctx = &ctx;
 		httpd_register_uri_handler(server, &get_settings);
+		post_reboot.user_ctx = &ctx;
+		httpd_register_uri_handler(server, &post_reboot);
     }
 }

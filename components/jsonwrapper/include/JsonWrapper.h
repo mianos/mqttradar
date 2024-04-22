@@ -72,26 +72,43 @@ public:
         return jsonObj_ == nullptr || cJSON_GetArraySize(jsonObj_.get()) == 0;
     }
 
-    template<typename T>
-    bool GetField(const std::string& key, T& value, bool mandatory = false) const {
-        if (!jsonObj_) {
-            return false;  // JSON object not initialized
-        }
+	bool ContainsField(const std::string& key) const {
+		if (!jsonObj_) return false;
+		cJSON* item = cJSON_GetObjectItem(jsonObj_.get(), key.c_str());
+		return item != nullptr;
+	}
 
-        cJSON* item = cJSON_GetObjectItem(jsonObj_.get(), key.c_str());
-        if (!item) {
-            return !mandatory;  // Return false if the field is mandatory, true otherwise
-        }
+	template<typename T>
+	bool GetField(const std::string& key, T& value, bool mandatory = false) const {
+		if (!jsonObj_) {
+			return false;  // JSON object not initialized
+		}
 
-        return assignValue(item, value);
-    }
+		cJSON* item = cJSON_GetObjectItem(jsonObj_.get(), key.c_str());
+		if (!item) {
+			return !mandatory;  // Return false if the field is mandatory, true otherwise
+		}
 
-    bool ContainsField(const std::string& key) const {
-        if (!jsonObj_) return false;
-        cJSON* item = cJSON_GetObjectItem(jsonObj_.get(), key.c_str());
-        return item != nullptr;
-    }
-
+		if constexpr (std::is_same_v<T, bool>) {
+			if (cJSON_IsBool(item)) {
+				value = cJSON_IsTrue(item) ? true : false;
+				return true;
+			} else {
+				return false;  // Type mismatch
+			}
+		} else if constexpr (std::is_same_v<T, std::string>) {
+			if (cJSON_IsString(item)) {
+				value = item->valuestring;
+				return true;
+			}
+		} else if constexpr (std::is_integral_v<T> || std::is_floating_point_v<T>) {
+			if (cJSON_IsNumber(item)) {
+				value = static_cast<T>(item->valuedouble);
+				return true;
+			}
+		}
+		return false;  // Type mismatch or unable to convert
+	}
 private:
 	static constexpr int floatDecimals = 4;
 
@@ -109,20 +126,26 @@ private:
         }
     }
 
-    template<typename T>
-    bool assignValue(cJSON* item, T& value) const {
-        if constexpr (std::is_same_v<T, std::string>) {
-            if (cJSON_IsString(item)) {
-                value = item->valuestring;
-                return true;
-            }
-        } else if constexpr (std::is_integral_v<T> || std::is_floating_point_v<T>) {
-            if (cJSON_IsNumber(item)) {
-                value = static_cast<T>(item->valuedouble);
-                return true;
-            }
-        }
-        return false;  // Type mismatch or unable to convert
-    }
+	template<typename T>
+	bool assignValue(cJSON* item, T& value) const {
+		if constexpr (std::is_same_v<T, bool>) {
+			if (cJSON_IsBool(item)) {
+				value = cJSON_IsTrue(item) ? true : false;
+				return true;
+			}
+		} else if constexpr (std::is_same_v<T, std::string>) {
+			if (cJSON_IsString(item)) {
+				value = item->valuestring;
+				return true;
+			}
+		} else if constexpr (std::is_integral_v<T> || std::is_floating_point_v<T>) {
+			if (cJSON_IsNumber(item)) {
+				value = static_cast<T>(item->valuedouble);
+				return true;
+			}
+		}
+		return false;
+	}
+
     std::unique_ptr<cJSON, decltype(&cJSON_Delete)> jsonObj_;
 };

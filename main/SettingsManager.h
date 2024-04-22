@@ -46,11 +46,11 @@ public:
 
         nvs.retrieve("mqttBrokerUri", mqttBrokerUri);
         nvs.retrieve("mqttUserName", mqttUserName);
-        nvs.retrieve("mqttUserPassword", mqttUserPassword);
+        nvs.retrieve("mqttPassword", mqttUserPassword);
         nvs.retrieve("sensorName", sensorName);
         if (nvs.retrieve("tracking", value)) tracking = std::stoi(value);
         if (nvs.retrieve("presence", value)) presence = std::stoi(value);
-        if (nvs.retrieve("detectionTimeout", value)) detectionTimeout = std::stoi(value);
+        if (nvs.retrieve("detectTime", value)) detectionTimeout = std::stoi(value);
         nvs.retrieve("tz", tz);
         nvs.retrieve("ntpServer", ntpServer);
     }
@@ -60,11 +60,11 @@ public:
         JsonWrapper json;
         json.AddItem("mqttBrokerUri", mqttBrokerUri);
         json.AddItem("mqttUserName", mqttUserName);
-        json.AddItem("mqttUserPassword", mqttUserPassword);
+        json.AddItem("mqttPassword", mqttUserPassword);
         json.AddItem("sensorName", sensorName);
         json.AddItem("tracking", tracking);
         json.AddItem("presence", presence);
-        json.AddItem("detectionTimeout", detectionTimeout);
+        json.AddItem("detectTime", detectionTimeout);
         json.AddItem("tz", tz);
         json.AddItem("ntpServer", ntpServer);
         return json.ToString();
@@ -76,11 +76,11 @@ public:
         JsonWrapper json = JsonWrapper::Parse(jsonString);
         updateFieldIfChanged(json, "mqttBrokerUri", mqttBrokerUri, changes);
         updateFieldIfChanged(json, "mqttUserName", mqttUserName, changes);
-        updateFieldIfChanged(json, "mqttUserPassword", mqttUserPassword, changes);
+        updateFieldIfChanged(json, "mqttPassword", mqttUserPassword, changes);
         updateFieldIfChanged(json, "sensorName", sensorName, changes);
         updateFieldIfChanged(json, "tracking", tracking, changes);
         updateFieldIfChanged(json, "presence", presence, changes);
-        updateFieldIfChanged(json, "detectionTimeout", detectionTimeout, changes);
+        updateFieldIfChanged(json, "detectTime", detectionTimeout, changes);
         updateFieldIfChanged(json, "tz", tz, changes);
         updateFieldIfChanged(json, "ntpServer", ntpServer, changes);
 

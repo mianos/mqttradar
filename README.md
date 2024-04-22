@@ -35,7 +35,7 @@ Make sure AES and additional settings is not filled out
 ## Settings Set Up via REST
 The rest of the config is in SettingsManager.h
 
-	std::string mqttBrokerUri = "mqtt://mqtt2.mianos.com";
+    std::string mqttBrokerUri = "mqtt://mqtt2.mianos.com";
     std::string mqttUserName = "";
     std::string mqttUserPassword = "";
     std::string sensorName = "radar3";
@@ -51,17 +51,17 @@ Once the wifi is connected with esptouch, any of these can be reset with the bui
 	  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
 	                                 Dload  Upload   Total   Spent    Left  Speed
 	100   225  100   225    0     0   1792      0 --:--:-- --:--:-- --:--:--  1800
-	{
-	  "mqttBrokerUri": "mqtt://mqtt2.mianos.com",
-	  "mqttUserName": "",
-	  "mqttUserPassword": "",
-	  "sensorName": "radar3",
-	  "tracking": 0,
-	  "presence": 3000,
-	  "detectionTimeout": 10000,
-	  "tz": "AEST-10AEDT,M10.1.0,M4.1.0/3",
-	  "ntpServer": "time.google.com"
-	}
+    {
+      "mqttBrokerUri": "mqtt://mqtt2.mianos.com",
+      "mqttUserName": "hikaru",
+      "mqttPassword": "nakamura",
+      "sensorName": "radar/office",
+      "tracking": 0,
+      "presence": 1000,
+      "detectTime": 10000,
+      "tz": "AEST-10AEDT,M10.1.0,M4.1.0/3",
+      "ntpServer": "time.google.com"
+    }
 	
 and any value can be set with:
 

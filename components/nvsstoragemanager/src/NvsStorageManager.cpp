@@ -4,10 +4,12 @@
 
 #include "NvsStorageManager.h"
 
+static const char *TAG = "NvsStorageManager";
+
 NvsStorageManager::NvsStorageManager(const std::string& storageNamespace) : ns(storageNamespace) {
     esp_err_t err = nvs_flash_init();
     if (err != ESP_OK && err != ESP_ERR_NVS_NO_FREE_PAGES && err != ESP_ERR_NVS_NEW_VERSION_FOUND) {
-        ESP_LOGE("NvsStorageManager", "Failed to initialize NVS: %s", esp_err_to_name(err));
+        ESP_LOGE(TAG, "Failed to initialize NVS: %s", esp_err_to_name(err));
         initialized = false;
     } else {
         initialized = true;
@@ -17,15 +19,18 @@ NvsStorageManager::NvsStorageManager(const std::string& storageNamespace) : ns(s
 bool NvsStorageManager::store(const std::string& key, const std::string& value) {
     if (!initialized) return false;
 
+	if (key.size() > 15) {
+        ESP_LOGE(TAG, "key longer than 15 chars '%s'", key.c_str());
+	}
     nvs_handle_t nvs_handle;
     esp_err_t err = nvs_open(ns.c_str(), NVS_READWRITE, &nvs_handle);
     if (err != ESP_OK) {
-        ESP_LOGE("NvsStorageManager", "Failed to open NVS handle: %s", esp_err_to_name(err));
+        ESP_LOGE(TAG, "Failed to open NVS handle: %s", esp_err_to_name(err));
         return false;
     }
 
-    err = nvs_set_str(nvs_handle, key.c_str(), value.c_str());
-    if (err != ESP_OK) {
+    if ((err = nvs_set_str(nvs_handle, key.c_str(), value.c_str())) != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to store '%s' value '%s' err is '%s'", key.c_str(), value.c_str(), esp_err_to_name(err));
         nvs_close(nvs_handle);
         return false;
     }
@@ -36,7 +41,8 @@ bool NvsStorageManager::store(const std::string& key, const std::string& value) 
 }
 
 bool NvsStorageManager::retrieve(const std::string& key, std::string& value) const {
-    if (!initialized) return false;
+    if (!initialized)
+		return false;
 
     nvs_handle_t nvs_handle;
     esp_err_t err = nvs_open(ns.c_str(), NVS_READONLY, &nvs_handle);
@@ -50,6 +56,7 @@ bool NvsStorageManager::retrieve(const std::string& key, std::string& value) con
     err = nvs_get_str(nvs_handle, key.c_str(), value_buff, &value_size);
     if (err != ESP_OK) {
         nvs_close(nvs_handle);
+		ESP_LOGI(TAG, "Did not get NVS value '%s'", key.c_str());
         return false;
     }
 

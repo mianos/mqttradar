@@ -112,7 +112,7 @@ extern "C" void app_main() {
 
 	ESP_LOGI(TAG, "Settings %s", settings.toJson().c_str());
     MqttClient client(settings);
-	WiFiManager wifiManager(nv, localEventHandler, nullptr);
+	WiFiManager wifiManager(nv, localEventHandler, nullptr, false); // last argument true, clear
 	LocalEP ep(settings, client);
 	LD2450 rsense(&ep, settings);
 	WebContext wc{&settings};

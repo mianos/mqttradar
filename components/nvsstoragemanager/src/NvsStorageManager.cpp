@@ -100,3 +100,4 @@ bool NvsStorageManager::clearAll() {
     nvs_close(nvs_handle);
     return err == ESP_OK;
 }
+

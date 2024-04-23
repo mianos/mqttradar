@@ -1,7 +1,8 @@
 #include <cstring>
 #include "esp_netif.h"
 #include "esp_system.h"
-#include "nvs_flash.h"
+
+#include <wifi_provisioning/manager.h>
 
 #include "wifimanager.h"
 
@@ -10,7 +11,11 @@ const char* WiFiManager::TAG = "WiFiManager";
 
 WiFiManager::WiFiManager(NvsStorageManager& storageManager,
 						 esp_event_handler_t eventHandler,
-						 void* eventHandlerArg) : storageManager(storageManager) {
+						 void* eventHandlerArg, 
+						 bool clear_settings) : storageManager(storageManager) {
+	if (clear_settings) {
+		clear();
+	}
     ESP_ERROR_CHECK(esp_netif_init());
     wifi_event_group = xEventGroupCreate();
     ESP_ERROR_CHECK(esp_event_loop_create_default());
@@ -25,7 +30,6 @@ WiFiManager::WiFiManager(NvsStorageManager& storageManager,
 	if (eventHandler != nullptr) {
 		ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, ESP_EVENT_ANY_ID, eventHandler, eventHandlerArg));
 	}
-
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_start());
 }
@@ -42,21 +46,16 @@ WiFiManager::~WiFiManager() {
 void WiFiManager::localEventHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
 	auto *wev = static_cast<WiFiManager *>(arg);
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
-        std::string ssid, password;
-        // Attempt to retrieve stored WiFi credentials
-        if (wev->storageManager.retrieve("ssid", ssid) && wev->storageManager.retrieve("password", password)) {
-            wifi_config_t wifi_config = {};
-            strncpy((char*)wifi_config.sta.ssid, ssid.c_str(), sizeof(wifi_config.sta.ssid));
-            strncpy((char*)wifi_config.sta.password, password.c_str(), sizeof(wifi_config.sta.password));
-            
-            ESP_LOGI(TAG, "Connecting to WiFi using stored credentials...");
-            ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config) );
-            esp_wifi_connect();
-
-        } else {
-            ESP_LOGI(TAG, "No stored WiFi credentials, starting SmartConfig...");
-            xTaskCreate(smartConfigTask, "smartConfigTask", 4096, NULL, 3, NULL);
-        }
+		ESP_LOGI(TAG, "INTO WIFI START EVENT");
+		bool provisioned = false;
+		ESP_ERROR_CHECK(wifi_prov_mgr_is_provisioned(&provisioned));
+		if (!provisioned) {
+			ESP_LOGI(TAG, "Not provisioned");
+			xTaskCreate(smartConfigTask, "smartConfigTask", 4096, NULL, 3, NULL);
+		} else {
+			ESP_LOGI(TAG, "already provisioned");
+			esp_wifi_connect();
+		}
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
         esp_wifi_connect();
         xEventGroupClearBits(wifi_event_group, CONNECTED_BIT);
@@ -73,11 +72,6 @@ void WiFiManager::localEventHandler(void* arg, esp_event_base_t event_base, int3
         memset(&wifi_config, 0, sizeof(wifi_config));
         memcpy(wifi_config.sta.ssid, evt->ssid, sizeof(wifi_config.sta.ssid));
         memcpy(wifi_config.sta.password, evt->password, sizeof(wifi_config.sta.password));
-
-        // Store the received credentials
-        wev->storageManager.store("ssid", std::string(reinterpret_cast<char*>(wifi_config.sta.ssid)));
-        wev->storageManager.store("password", std::string(reinterpret_cast<char*>(wifi_config.sta.password)));
-
         ESP_ERROR_CHECK(esp_wifi_disconnect());
         ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config) );
         esp_wifi_connect();
@@ -105,8 +99,7 @@ void WiFiManager::smartConfigTask(void* param) {
 }
 
 void WiFiManager::clear() {
-	storageManager.clear("ssid");
-	storageManager.clear("password");
+	wifi_prov_mgr_reset_provisioning();
 	ESP_LOGI(TAG, "WiFi credentials cleared.");
 	esp_restart();
 }

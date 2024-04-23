@@ -14,7 +14,8 @@ class WiFiManager {
 public:
     WiFiManager(NvsStorageManager& storageManager,
 				esp_event_handler_t eventHandler=nullptr,
-				void* eventHandlerArg = nullptr);
+				void* eventHandlerArg = nullptr,
+				bool clear_settings=false);
     ~WiFiManager();
 	void clear();
 private:

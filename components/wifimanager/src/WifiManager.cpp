@@ -44,7 +44,6 @@ WiFiManager::~WiFiManager() {
 }
 
 void WiFiManager::localEventHandler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data) {
-	auto *wev = static_cast<WiFiManager *>(arg);
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
 		ESP_LOGI(TAG, "INTO WIFI START EVENT");
 		bool provisioned = false;

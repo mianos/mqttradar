@@ -35,7 +35,7 @@ class LocalEP : public EventProc {
 
   void mqtt_update_presence(bool entry, const Value *vv=nullptr) {
 		JsonWrapper doc;
-		doc.AddItem("entry", entry);
+		doc.AddItem("entry", static_cast<bool>(entry));
 		if (entry && vv) {
 			vv->toJson(doc);
 		}

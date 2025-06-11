@@ -68,6 +68,79 @@ struct NoTarget : public Value {
 };
 
 
+struct Movement : public Value {
+  float distance = 0.0f;
+  float power    = 0.0f;
+
+  const std::string etype() const override { return "mov"; }
+
+  Movement(float distance, float power = 0.0f)
+      : distance(distance), power(power) {}
+
+  float get_main() const override { return distance; }
+  float get_power() const { return power; }
+
+  void print() const override {
+    ESP_LOGI("Events",
+             "Movement: distance %.1f m, power %.1f units",
+             distance,
+             power);
+  }
+
+  std::unique_ptr<Value> clone() const override {
+    return std::make_unique<Movement>(*this);
+  }
+
+  bool isEqual(const Value& other) const override {
+    const auto& o = static_cast<const Movement&>(other);
+    return distance == o.distance &&
+           power    == o.power;
+  }
+
+  JsonWrapper& toJson(JsonWrapper& doc) const override {
+    Value::toJson(doc);
+    doc.AddItem("distance", distance);
+    doc.AddItem("power", power);
+    return doc;
+  }
+};
+
+struct Occupancy : public Value {
+    float distance = 0.0f;
+    float power    = 0.0f;
+
+    const std::string etype() const override { return "occ"; }
+
+    Occupancy(float distance, float power = 0.0f)
+        : distance(distance), power(power) {}
+
+    float get_main() const override { return distance; }
+    float get_power() const override { return power; }
+
+    void print() const override {
+        ESP_LOGI("Events",
+                 "Occupancy: distance %.1f m, power %.1f units",
+                 distance,
+                 power);
+    }
+
+    std::unique_ptr<Value> clone() const override {
+        return std::make_unique<Occupancy>(*this);
+    }
+
+    bool isEqual(const Value& other) const override {
+        const auto& o = static_cast<const Occupancy&>(other);
+        return distance == o.distance && power == o.power;
+    }
+
+    JsonWrapper& toJson(JsonWrapper& doc) const override {
+        Value::toJson(doc);
+        doc.AddItem("distance", distance);
+        doc.AddItem("power", power);
+        return doc;
+    }
+};
+
 class EventProc {
 public:
   virtual void Detected(Value *vv) = 0;

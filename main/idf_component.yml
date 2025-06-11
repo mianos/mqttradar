@@ -1,0 +1,17 @@
+dependencies:
+  button:
+    git: https://github.com/mianos/mianesp.git
+    path: components/button
+    version: main
+  jsonwrapper:
+    git: https://github.com/mianos/mianesp.git
+    path: components/jsonwrapper
+    version: main
+  nvsstoragemanager:
+    git: https://github.com/mianos/mianesp.git
+    path: components/nvsstoragemanager
+    version: main
+  wifimanager:
+    git: https://github.com/mianos/mianesp.git
+    path: components/wifimanager
+    version: main

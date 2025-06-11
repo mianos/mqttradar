@@ -1,4 +1,4 @@
-menu "LD2450 Configuration"
+menu "Radar device configuration"
 
 config LD2450_TX_PIN
     int "LD2450 TX Pin"
@@ -11,6 +11,19 @@ config LD2450_RX_PIN
     default 20
     help
         Define the RX pin number for the LD2450 Radar Sensor.
+
+config LD1125_TX_PIN
+    int "LD1125 TX Pin"
+    default 13
+    help
+        Define the TX pin number for the LD1125 Radar Sensor.
+
+config LD1125_RX_PIN
+    int "LD1125 RX Pin"
+    default 12
+    help
+        Define the RX pin number for the LD1125 Radar Sensor.
+
 
 config BUTTON_PIN
     int "Button GPIO Pin"

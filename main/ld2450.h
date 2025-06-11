@@ -64,7 +64,7 @@ public:
 		uartConfig.parity = UART_PARITY_DISABLE;
 		uartConfig.stop_bits = UART_STOP_BITS_1;
 		uartConfig.flow_ctrl = UART_HW_FLOWCTRL_DISABLE;
-		uartConfig.source_clk = UART_SCLK_APB;
+		uartConfig.source_clk = UART_SCLK_DEFAULT;
 		uart_param_config(uartPort, &uartConfig);
 		uart_set_pin(uartPort, txPin, rxPin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
 		uart_driver_install(uartPort, 1024 * 2, 0, 0, NULL, 0);

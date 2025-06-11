@@ -18,6 +18,7 @@
 
 #include "Events.h"
 #include "ld2450.h"
+#include "ld1125.h"
 #include "SettingsManager.h"
 #include "web.h"
 #include "Button.h"

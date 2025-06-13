@@ -24,7 +24,7 @@ public:
     std::string sensorName = "radar3";
     int tracking = 0;
     int presence = 1000;
-    int detectionTimeout = 10000;
+    int detectionTimeout = 1000;
     std::string tz = "AEST-10AEDT,M10.1.0,M4.1.0/3";
     std::string ntpServer = "time.google.com";
 

@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include <memory>
@@ -11,6 +10,7 @@
 #include "RadarSensor.h"
 
 class LD1125 : public RadarSensor {
+	static constexpr const char* TAG = "LD1125";
     public:
         LD1125(EventProc* ep, SettingsManager& settings)
             : RadarSensor(ep, settings),
@@ -40,7 +40,50 @@ class LD1125 : public RadarSensor {
                 nullptr,
                 0
             );
+			verifyTestMode();
         }
+
+
+    void verifyTestMode() {
+        static constexpr char testModeCmd[] = "test_mode=1\r\n";
+        static constexpr char saveCmd[] = "save\r\n";
+
+		ESP_LOGI(TAG, "test mode called =========================================== ");
+        enum class ModeState {
+            IDLE,
+            SENT,
+            ACKED,
+            TIMEOUT
+        };
+
+        ModeState state = ModeState::IDLE;
+        std::string buffer;
+        int64_t startTime = esp_timer_get_time() / 1000;
+
+        uart_flush_input(uartPort);
+        uart_write_bytes(uartPort, testModeCmd, sizeof(testModeCmd) - 1);
+        state = ModeState::SENT;
+
+        while ((esp_timer_get_time() / 1000 - startTime) < 1000) {
+            uint8_t byte;
+            if (uart_read_bytes(uartPort, &byte, 1, 10 / portTICK_PERIOD_MS) > 0) {
+                buffer.push_back(static_cast<char>(byte));
+                if (buffer.find("str=") != std::string::npos) {
+                    state = ModeState::ACKED;
+                    break;
+                }
+            }
+        }
+
+        if (state == ModeState::ACKED) {
+            uart_write_bytes(uartPort, saveCmd, sizeof(saveCmd) - 1);
+            ESP_LOGI(TAG, "Test mode enabled and configuration saved.");
+        } else {
+            state = ModeState::TIMEOUT;
+            ESP_LOGI(TAG, "Failed to enable test mode: timeout.");
+        }
+    }
+
 
         std::vector<std::unique_ptr<Value>> get_decoded_radar_data() override {
             std::vector<std::unique_ptr<Value>> valuesList;
@@ -72,6 +115,7 @@ class LD1125 : public RadarSensor {
                 }
 
                 char c = static_cast<char>(byte);
+				//putchar(c);
                 switch (state) {
                     case State::WAIT:
                         if (c == 'o' || c == 'm') {

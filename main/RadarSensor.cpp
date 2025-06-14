@@ -10,7 +10,7 @@ void RadarSensor::process(float minPower) {
 
     bool noTargetFound = true;
     for (auto &v : valuesList) {
-#if 0
+#if 1
         if (v->etype() == "no") {
             if (currentState == STATE_DETECTED || currentState == STATE_DETECTED_ONCE) {
                 ep->Cleared();
@@ -63,7 +63,7 @@ void RadarSensor::process(float minPower) {
             break;
     }
 
-    if (!sent_detected_event) {
+		if (!sent_detected_event) {
       for (auto& v : valuesList) {
         if (std::string_view(std::string_view(v->etype())) != "no") {
           ep->TrackingUpdate(v.get());

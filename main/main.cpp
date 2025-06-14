@@ -115,7 +115,7 @@ extern "C" void app_main() {
     MqttClient client(settings);
 	WiFiManager wifiManager(nv, localEventHandler, nullptr, false); // last argument true, clear
 	LocalEP ep(settings, client);
-	LD2450 rsense(&ep, settings);
+	LD1125 rsense(&ep, settings);
 	WebContext wc{&settings};
 	WebServer webServer(wc);
 

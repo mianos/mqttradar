@@ -6,7 +6,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 idf_component_register(SRCS main.cpp 
                     MqttClient.cpp
 					RadarSensor.cpp
-					DebounceRadar.cpp
 					web.cpp
                 INCLUDE_DIRS "."
                 REQUIRES mqtt 

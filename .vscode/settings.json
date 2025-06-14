@@ -11,7 +11,7 @@
   "idf.openOcdConfigs": [
     "board/esp32c6-ftdi.cfg"
   ],
-  "idf.port": "/dev/tty.usbmodem14301",
+  "idf.port": "/dev/cu.usbmodem14201",
   "idf.pythonBinPath": "/Users/rfo/.espressif/python_env/idf5.2_py3.11_env/bin/python",
   "idf.toolsPath": "/Users/robertfowler/.espressif",
   "idf.enableUpdateSrcsToCMakeListsFile": false,

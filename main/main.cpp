@@ -17,11 +17,11 @@
 #include "WifiManager.h"
 
 #include "Events.h"
+#include "ld2450.h"
 #include "ld1125.h"
 #include "SettingsManager.h"
 #include "web.h"
 #include "Button.h"
-#include "DebounceRadar.h"
 
 static const char *TAG = "mqtt_main";
 
@@ -115,16 +115,7 @@ extern "C" void app_main() {
     MqttClient client(settings);
 	WiFiManager wifiManager(nv, localEventHandler, nullptr, false); // last argument true, clear
 	LocalEP ep(settings, client);
-	LD1125 rawLd1125(&ep, settings);
-
-//	rawLd1125.debugRaw();
-
-    // Debounced radar: immediate on change, then trailing every 1000 ms
-    DebounceRadar rsense(
-        &rawLd1125,
-        &ep,
-        settings,
-        1000u);
+	LD2450 rsense(&ep, settings);
 	WebContext wc{&settings};
 	WebServer webServer(wc);
 

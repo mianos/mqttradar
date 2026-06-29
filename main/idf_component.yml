@@ -3,19 +3,23 @@ dependencies:
   jsonwrapper:
     git: git@github.com:mianos/mianesp.git
     path: components/jsonwrapper
-    version: idf6-network-provisioning
+    version: main
   nvsstoragemanager:
     git: git@github.com:mianos/mianesp.git
     path: components/nvsstoragemanager
-    version: idf6-network-provisioning
+    version: main
   wifimanager:
     git: git@github.com:mianos/mianesp.git
     path: components/wifimanager
-    version: idf6-network-provisioning
+    version: main
   webserver:
     git: git@github.com:mianos/mianesp.git
     path: components/webserver
-    version: idf6-network-provisioning
+    version: main
+  mqttwrapper:
+    git: git@github.com:mianos/mianesp.git
+    path: components/mqttwrapper
+    version: main
 
   # Sensor driver — LD1125 mmWave radar, kept on its own repo.
   ldradar:

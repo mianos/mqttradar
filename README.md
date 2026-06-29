@@ -1,92 +1,128 @@
-# ESP_IDF MQTT Radar Track.
-## Environment
-Visual Studio code with the esp-idf plugin. Nothing else. ALl modules are from the stock IDF.
+# mqttradar — ESP32-C3 presence sensor
 
-Open the folder. Run the menuconfig. Select custom partition. Save. 
-You may wish to select a board and port.
-Press build, upload and monitor.
+An ESP32-C3 (Seeed XIAO) presence sensor built around an **HLK-LD2450** mmWave
+multi-target tracking radar. Detected targets are published over MQTT; the
+device is configured over MQTT and HTTP, and supports OTA updates with rollback.
 
-## Menu Config
+Built on **ESP-IDF v6.0.1**. Shared infrastructure comes from the `mianos/mianesp`
+components (`wifimanager`, `webserver`, `jsonwrapper`, `nvsstoragemanager`) plus
+local `mqttwrapper` and `settings` components; the radar base classes come from
+the `mianos/ldradar` component.
 
-### Wifi reset button
-Run the idf menuconfig, go to Button Configuration, at the bottom.
+## Build
 
-- Set the GPIO button for your board.
+Components are pulled by the IDF component manager from `main/idf_component.yml`
+(fetching `git@github.com:mianos/mianesp.git` over SSH and the Espressif
+registry), so no manual menuconfig steps are required — `sdkconfig.defaults`
+selects the esp32c3 target, the custom dual-OTA partition table and OTA
+rollback.
 
-### LD2450 Configuration
-Located in the "LD2450 Configuration" section:
+```sh
+./build.sh            # wraps idf.py build against ESP-IDF v6.0.1
+# or
+idf.py build flash monitor
+```
 
--    Define the TX pin number for the LD2450 Radar Sensor.
--    Define the RX pin number for the LD2450 Radar Sensor.
+CI builds the firmware for esp32c3 under `espressif/idf:release-v6.0`
+(`.gitlab-ci.yml`).
 
+## Hardware / wiring
 
-## Wifi Set Up
+| Signal        | XIAO pin | GPIO   |
+|---------------|----------|--------|
+| LD2450 TX → ESP RX | D7  | GPIO20 |
+| ESP TX → LD2450 RX | D6  | GPIO21 |
 
-To reset the wifi, hold down the button (defined in Button.h). On the xiao espc3 this is GPIO_9
-on the lilygo display this is pin 35.
+UART1 at **256000 baud**. The pins are constants in [main/main.cpp](main/main.cpp)
+(`kUartTx` / `kUartRx`); swap them if your TX/RX are reversed.
 
-When the 'Button' class is initialised in main.cpp you can pass another GPIO.
+## Wi-Fi setup
 
-Once the wifi is initialised you can use the ESP Touch V2 to config the wifi.
-https://www.espressif.com/en/technology/esp-touch
+On first boot the device is unprovisioned. Use **ESP-Touch V2** to provision
+Wi-Fi: https://www.espressif.com/en/technology/esp-touch (leave AES / additional
+settings blank).
 
-Make sure AES and additional settings is not filled out
+There is **no reset button**. To re-provision (clear saved credentials and
+reboot into ESP-Touch), either:
 
-## Settings Set Up via REST
-The rest of the config is in SettingsManager.h
+- publish to `cmnd/<sensorName>/reprovision`, or
+- `POST /config/reset` with body `{"wifi": true}`.
 
-    std::string mqttBrokerUri = "mqtt://mqtt2.mianos.com";
-    std::string mqttUserName = "";
-    std::string mqttUserPassword = "";
-    std::string sensorName = "radar3";
-    int tracking = 0;
-    int presence = 1000;
-    int detectionTimeout = 10000;
-    std::string tz = "AEST-10AEDT,M10.1.0,M4.1.0/3";
-    std::string ntpServer = "time.google.com";
+## Settings
 
-Once the wifi is connected with esptouch, any of these can be reset with the built in web server.
+Defaults live in the `settings` component
+([components/settings/include/Settings.h](components/settings/include/Settings.h)):
 
-WARNING:  These names in the json are not the same as the above as there is a key size limit for nvs keys.
+```cpp
+std::string mqttBrokerUri    = "mqtt://mqtt2.mianos.com";
+std::string mqttUserName     = "";
+std::string mqttUserPassword = "";   // JSON key: "mqttPassword"
+std::string sensorName       = "radar3";
+std::string tz               = "AEST-10AEDT,M10.1.0,M4.1.0/3";
+std::string ntpServer        = "time.google.com";
+int         presencePeriodSec = 1;   // min seconds between presence publishes; <=0 disables
+```
 
+All settings are persisted as a single JSON blob in NVS under the key `config`.
+(Upgrading from the pre-v6 firmware, which used per-field NVS keys, resets
+settings to these defaults on first boot; Wi-Fi credentials are unaffected.)
 
-	curl http://<IP_ADDRESS>/settings | jq
-	  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
-	                                 Dload  Upload   Total   Spent    Left  Speed
-	100   225  100   225    0     0   1792      0 --:--:-- --:--:-- --:--:--  1800
-    {
-      "mqttBrokerUri": "mqtt://mqtt2.mianos.com",
-      "mqttUserName": "hikaru",
-      "mqttPassword": "nakamura",
-      "sensorName": "radar/office",
-      "tracking": 0,
-      "presence": 1000,
-      "detectTime": 10000,
-      "tz": "AEST-10AEDT,M10.1.0,M4.1.0/3",
-      "ntpServer": "time.google.com"
-    }
-	
-and any value can be set with:
+### Read / change settings over HTTP
 
-	curl -X POST http://<IP_ADDRESS>/settings -H "Content-Type: application/json" -d '{"presence": 3000}'
-	
+```sh
+curl http://<IP_ADDRESS>/config | jq
+curl -X POST http://<IP_ADDRESS>/config \
+     -H "Content-Type: application/json" \
+     -d '{"presencePeriodSec": 5}'
+```
 
-The settings are stored in nv ram so this only needs to be done once.
+### Change settings over MQTT
+
+```sh
+mosquitto_pub -t 'cmnd/radar3/settings' -m '{"presencePeriodSec": 5}'
+```
+
+The device replies on `tele/<sensorName>/settingsack` with the keys that
+changed. Other commands: `cmnd/<sensorName>/restart`,
+`cmnd/<sensorName>/reprovision`.
+
+## HTTP endpoints
+
+| Method | Path            | Purpose                                            |
+|--------|-----------------|----------------------------------------------------|
+| GET    | `/healthz`      | version, partition, free heap, sensor name         |
+| GET    | `/config`       | current settings as JSON                           |
+| POST   | `/config`       | apply + persist a subset of settings               |
+| POST   | `/config/reset` | restore defaults; `{"wifi":true}` also clears Wi-Fi|
+| GET    | `/firmware`     | running image version / partition                  |
+| POST   | `/firmware`     | raw `.bin` body → inactive OTA slot → reboot        |
+
+OTA deploy:
+
+```sh
+curl --data-binary @build/mqttradar.bin http://<IP_ADDRESS>/firmware
+```
+
+A freshly-OTA'd image boots pending-verify and is only marked valid once the
+device is back on the network, so an image that can't reach Wi-Fi rolls back to
+the previous slot.
 
 ## Data published
 
-When the module starts it publishes the following:
+At startup (`tele/<sensorName>/init`):
 
-	mosquitto_sub -h localhost -v -t 'tele/radar3/+'
-	
-	tele/radar3/init {"version":4,"name":"radar3","time":"2024-04-18T17:16:09","gmt":"2024-04-18T07:16:09","hostname":"espressif","ip":"<IP_ADDRESS>","settings":"cmnd/radar3/settings"}
-	
+```
+tele/radar3/init {"version":5,"time":"...","gmt":"...","hostname":"radar3","ip":"<IP>","settings":"cmnd/radar3/settings"}
+```
 
-When it detects movement, it publishes the following:
+Radar events (`tele/<sensorName>/radar`) — coordinates in metres, speed in m/s:
 
-	tele/radar3/presence {"entry":1,"type":"rng","x":0,"y":0,"speed":0,"reference":0}
-	tele/radar3/presence {"entry":1,"type":"rng","x":0,"y":0,"speed":0,"reference":0}
-	tele/radar3/presence {"entry":1,"type":"rng","x":0,"y":0,"speed":0,"reference":0}
-	tele/radar3/presence {"entry":1,"type":"rng","x":0,"y":0,"speed":0,"reference":0}
-	tele/radar3/presence {"entry":1,"type":"rng","x":0,"y":0,"speed":0,"reference":0}
-	tele/radar3/presence {"entry":0}
+```
+tele/radar3/radar {"event":"detected","type":"rng","x":-0.08,"y":0.31,"speed":0,"reference":0}
+tele/radar3/radar {"event":"presence","type":"rng","x":-0.17,"y":0.65,"speed":0,"reference":0}
+tele/radar3/radar {"event":"cleared"}
+```
+
+Periodic status every 60s (`tele/<sensorName>/status`): uptime and heap. A
+Last-Will of `{"status":"offline"}` is published on the same topic on
+disconnect.

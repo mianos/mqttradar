@@ -1,17 +1,29 @@
 dependencies:
-  button:
-    git: https://github.com/mianos/mianesp.git
-    path: components/button
-    version: main
+  # Shared infrastructure — mianesp repo, IDF v6 branch.
   jsonwrapper:
-    git: https://github.com/mianos/mianesp.git
+    git: git@github.com:mianos/mianesp.git
     path: components/jsonwrapper
-    version: main
+    version: idf6-network-provisioning
   nvsstoragemanager:
-    git: https://github.com/mianos/mianesp.git
+    git: git@github.com:mianos/mianesp.git
     path: components/nvsstoragemanager
-    version: main
+    version: idf6-network-provisioning
   wifimanager:
-    git: https://github.com/mianos/mianesp.git
+    git: git@github.com:mianos/mianesp.git
     path: components/wifimanager
+    version: idf6-network-provisioning
+  webserver:
+    git: git@github.com:mianos/mianesp.git
+    path: components/webserver
+    version: idf6-network-provisioning
+
+  # Sensor driver — LD1125 mmWave radar, kept on its own repo.
+  ldradar:
+    git: https://github.com/mianos/ldradar.git
     version: main
+
+  # Espressif registry components (cJSON is no longer bundled in IDF v6;
+  # mqtt is now a managed component). network_provisioning is pulled
+  # transitively by wifimanager.
+  espressif/cjson: "*"
+  espressif/mqtt: "*"

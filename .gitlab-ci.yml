@@ -1,0 +1,19 @@
+stages:
+  - build
+
+# Full firmware build for esp32c3 under ESP-IDF v6.0.
+build-firmware:
+  stage: build
+  image: espressif/idf:release-v6.0
+  variables:
+    IDF_TARGET: esp32c3
+  script:
+    - . "$IDF_PATH/export.sh"
+    - idf.py set-target esp32c3
+    - idf.py build
+  artifacts:
+    paths:
+      - build/mqttradar.bin
+      - build/bootloader/bootloader.bin
+      - build/partition_table/partition-table.bin
+    expire_in: 1 week

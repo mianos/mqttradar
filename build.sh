@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
-# Stable build wrapper so the command string never changes (one approval covers all builds).
+# Build wrapper. Runs from the repo root regardless of where it's invoked, and
+# uses the ESP-IDF pointed to by $IDF_PATH (set it, or source export.sh first).
 set -e
-export IDF_PATH=/Users/robertfowler/.espressif/v6.0.1/esp-idf
-. "$IDF_PATH/export.sh" >/dev/null 2>&1
-cd /Users/robertfowler/walocal/mqttradar
-idf.py build 2>&1 | tee /tmp/mqttradar_build.log | tail -n 60
+cd "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+: "${IDF_PATH:?IDF_PATH is not set — point it at your esp-idf checkout or run '. \$IDF_PATH/export.sh' first}"
+# Bring idf.py and the toolchain onto PATH if they aren't already.
+command -v idf.py >/dev/null 2>&1 || . "$IDF_PATH/export.sh" >/dev/null
+
+idf.py build

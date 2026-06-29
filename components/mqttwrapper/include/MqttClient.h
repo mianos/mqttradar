@@ -12,29 +12,32 @@
 #include "freertos/semphr.h"
 #include "mqtt_client.h"
 
-#include "SettingsManager.h"
+#include "JsonWrapper.h"
 
-using HandlerFunc = std::function<void(class MqttClient *, const std::string&, cJSON*)>;
+using HandlerFunc = std::function<esp_err_t(class MqttClient*, const std::string&, const JsonWrapper&, void*)>;
 
 struct HandlerBinding {
-    std::string subscriptionTopic;  // Topic pattern used for MQTT subscription
-    std::regex matchPattern;        // Regex pattern used to match incoming topics
-    HandlerFunc handler;            // Function to handle the incoming data
+    std::string subscriptionTopic;
+    std::regex matchPattern;
+    HandlerFunc handler;
+    void* context;  // Use void* for context
 };
 
 class MqttClient {
 public:
-    MqttClient(SettingsManager& settings);
+	std::string sensorName;
+
+	MqttClient(esp_mqtt_client_config_t& mqtt_cfg, std::string sensorName);
     ~MqttClient();
 
     void start();
     void wait_for_connection();
     void publish(std::string topic, std::string data);
     void subscribe(std::string topic);
-	void registerHandlers();
+	
+	void registerHandler(const std::string topic, const std::regex pattern, HandlerFunc handler, void* context);
 
 private:
-	SettingsManager& settings;
     SemaphoreHandle_t connected_sem;
     esp_mqtt_client_handle_t client;
     std::vector<std::string> subscriptions;
@@ -45,5 +48,5 @@ private:
     void flushMessageQueue();
 
 	std::vector<HandlerBinding> bindings;
-	static void dispatchEvent(MqttClient* client, const std::string& topic, cJSON* data);
+	static void dispatchEvent(MqttClient* client, const std::string& topic, const JsonWrapper& data);
 };

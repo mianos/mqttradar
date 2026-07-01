@@ -1,5 +1,5 @@
 dependencies:
-  # Shared infrastructure — mianesp repo, IDF v6 branch.
+  # Shared infrastructure — mianesp repo, main branch.
   jsonwrapper:
     git: git@github.com:mianos/mianesp.git
     path: components/jsonwrapper

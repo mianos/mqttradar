@@ -5,6 +5,7 @@
 #include "MqttClient.h"
 #include "JsonWrapper.h"
 #include "esp_timer.h"
+#include "esp_log.h"
 
 class MqttEventProc : public EventProc {
 public:
@@ -18,14 +19,14 @@ public:
             value_ptr->toJson(doc);
         }
         doc.AddTime();
-        mqtt.publish(topicRadar(), doc.ToString());
+        publishLogged(topicRadar(), doc.ToString());
     }
 
     void Cleared() override {
         JsonWrapper doc;
         doc.AddItem("event", std::string("cleared"));
         doc.AddTime();
-        mqtt.publish(topicRadar(), doc.ToString());
+        publishLogged(topicRadar(), doc.ToString());
     }
 
     // Tracking disabled per request
@@ -51,7 +52,7 @@ public:
             value_ptr->toJson(doc);
         }
         doc.AddTime();
-        mqtt.publish(topicRadar(), doc.ToString());
+        publishLogged(topicRadar(), doc.ToString());
     }
 
 private:
@@ -59,7 +60,14 @@ private:
     MqttClient& mqtt;
     uint32_t lastPresenceMs;
 
+    static constexpr const char* TAG = "MqttEventProc";
+
     std::string topicRadar() const {
         return "tele/" + settings.sensorName + "/radar";
+    }
+
+    void publishLogged(const std::string& topic, const std::string& payload) {
+        ESP_LOGI(TAG, "publish %s %s", topic.c_str(), payload.c_str());
+        mqtt.publish(topic, payload);
     }
 };

@@ -21,7 +21,7 @@ dependencies:
     path: components/mqttwrapper
     version: main
 
-  # Sensor driver — LD1125 mmWave radar, kept on its own repo.
+  # Sensor driver — LD2450 mmWave radar, kept on its own repo.
   ldradar:
     git: https://github.com/mianos/ldradar.git
     version: main

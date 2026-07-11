@@ -1,6 +1,6 @@
 // mqttradar — ESP32-C3 presence sensor on ESP-IDF v6.
 //
-// An LD1125 mmWave radar (UART) reports presence/tracking, published over MQTT.
+// An LD2450 mmWave radar (UART) reports presence/tracking, published over MQTT.
 // Settings live in NVS and are adjustable over MQTT (cmnd/<name>/settings) and
 // HTTP (/config). A web server exposes /healthz, /config and OTA (/firmware)
 // with rollback verification. Shared infrastructure (wifimanager, mqttwrapper,
@@ -19,6 +19,7 @@
 #include "esp_event.h"
 #include "esp_timer.h"
 #include "esp_sntp.h"
+#include "esp_app_desc.h"
 #include "esp_ota_ops.h"
 
 #include "driver/gpio.h"
@@ -194,7 +195,7 @@ void telemetryTask(void* arg) {
     }
 
     JsonWrapper init;
-    init.AddItem("version", 5);
+    init.AddItem("version", std::string(esp_app_get_description()->version));
     init.AddTime();
     init.AddTime(false, "gmt");
     init.AddItem("hostname", app->settings->sensorName);
@@ -288,6 +289,7 @@ extern "C" void app_main(void) {
     esp_log_level_set("esp_netif_handlers", ESP_LOG_INFO);  // prints "sta ip: ..."
     esp_log_level_set("MqttClient", ESP_LOG_INFO);
     esp_log_level_set("ld2450_main", ESP_LOG_INFO);         // decoded radar events
+    esp_log_level_set("MqttEventProc", ESP_LOG_INFO);       // topic + payload on publish
 
     static NvsStorageManager nvs;
     static Settings settings(nvs);

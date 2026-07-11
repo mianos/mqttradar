@@ -18,6 +18,9 @@ public:
     std::string mqttBrokerUri    = "mqtt://mqtt2.mianos.com";
     std::string mqttUserName     = "";
     std::string mqttUserPassword = "";
+    // Default must never be the name of a deployed device: sensorName is the
+    // MQTT client-id, so a /config/reset (or fresh unit) colliding with a live
+    // sensor would kick both off the broker in a connect loop.
     std::string sensorName       = "radar3";
     std::string tz               = "AEST-10AEDT,M10.1.0,M4.1.0/3";
     std::string ntpServer        = "time.google.com";

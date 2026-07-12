@@ -194,6 +194,12 @@ void telemetryTask(void* arg) {
         vTaskDelay(pdMS_TO_TICKS(500));
     }
 
+    // RTC time survives a soft restart, so the SNTP wait passes before Wi-Fi
+    // has re-associated; wait (bounded) for an IP too or init reports 0.0.0.0.
+    for (int i = 0; i < 40 && localIp() == "0.0.0.0"; ++i) {
+        vTaskDelay(pdMS_TO_TICKS(500));
+    }
+
     JsonWrapper init;
     init.AddItem("version", std::string(esp_app_get_description()->version));
     init.AddTime();

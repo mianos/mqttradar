@@ -8,7 +8,7 @@ idf_component_register(SRCS "main.cpp" "RadarWebServer.cpp"
                          wifimanager
                          settings
                          mqttwrapper
-                         webserver
+                         webserver wifiwebserver
                          ldradar
                          jsonwrapper
                          espressif__mqtt

@@ -16,6 +16,11 @@ dependencies:
     git: git@github.com:mianos/mianesp.git
     path: components/webserver
     version: main
+  # WebServer + /reset + /set_hostname (needs a WiFiManager).
+  wifiwebserver:
+    git: git@github.com:mianos/mianesp.git
+    path: components/wifiwebserver
+    version: main
   mqttwrapper:
     git: git@github.com:mianos/mianesp.git
     path: components/mqttwrapper

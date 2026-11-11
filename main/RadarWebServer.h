@@ -4,7 +4,7 @@
 #include "esp_http_server.h"
 
 #include "JsonWrapper.h"
-#include "WebServer.h"
+#include "WifiWebServer.h"
 
 class Settings;
 
@@ -16,9 +16,9 @@ class Settings;
 //   POST /config         apply + persist a subset of settings
 //   POST /config/reset   restore settings to defaults (optional wifi wipe)
 // Handlers recover this instance from req->user_ctx.
-class RadarWebServer : public WebServer {
+class RadarWebServer : public WifiWebServer {
 public:
-    RadarWebServer(WebContext* ctx, Settings& settings);
+    RadarWebServer(WifiWebContext* ctx, Settings& settings);
 
     esp_err_t start() override;
 

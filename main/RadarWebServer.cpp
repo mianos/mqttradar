@@ -46,8 +46,8 @@ esp_err_t send_json(httpd_req_t* req, const JsonWrapper& json) {
 
 }  // namespace
 
-RadarWebServer::RadarWebServer(WebContext* ctx, Settings& settings)
-    : WebServer(ctx), settings_(settings) {}
+RadarWebServer::RadarWebServer(WifiWebContext* ctx, Settings& settings)
+    : WifiWebServer(ctx), settings_(settings) {}
 
 esp_err_t RadarWebServer::start() {
     esp_err_t r = WebServer::start();
@@ -214,10 +214,10 @@ esp_err_t RadarWebServer::config_reset_post_handler(httpd_req_t* req) {
     if (wipe_wifi) {
         // WiFiManager::clear() blanks the saved STA credentials and restarts;
         // the device comes back up unprovisioned for ESP-Touch v2.
-        if (self->webContext && self->webContext->wifiManager) {
+        if (self->webContext && static_cast<WifiWebContext*>(self->webContext)->wifiManager) {
             ESP_LOGW(TAG, "clearing wifi credentials and rebooting");
             vTaskDelay(pdMS_TO_TICKS(500));
-            self->webContext->wifiManager->clear();
+            static_cast<WifiWebContext*>(self->webContext)->wifiManager->clear();
         }
     }
     return r;

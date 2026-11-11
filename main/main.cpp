@@ -40,7 +40,7 @@
 #include "WifiManager.h"
 #include "MqttClient.h"
 #include "MqttEventProc.h"
-#include "WebServer.h"
+#include "WifiWebServer.h"
 #include "RadarWebServer.h"
 
 static const char* kTag = "mqttradar";
@@ -340,7 +340,7 @@ extern "C" void app_main(void) {
     mqtt.start();
 
     // Web server: base /healthz, /reset, /set_hostname plus /config and OTA.
-    static WebContext webctx(&wifi);
+    static WifiWebContext webctx(&wifi);
     static RadarWebServer web(&webctx, settings);
     web.start();
 
